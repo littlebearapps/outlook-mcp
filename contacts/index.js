@@ -3,7 +3,10 @@
  *
  * Provides access to personal contacts and people search via Microsoft Graph API.
  */
-const { callGraphAPI, callGraphAPIPaginated } = require('../utils/graph-api');
+const {
+  callGraphAPI,
+  callGraphAPIPaginated: _callGraphAPIPaginated,
+} = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 
 /**
@@ -15,7 +18,7 @@ const CONTACT_FIELDS = {
     'displayName',
     'emailAddresses',
     'mobilePhone',
-    'businessPhones'
+    'businessPhones',
   ],
   full: [
     'id',
@@ -36,8 +39,8 @@ const CONTACT_FIELDS = {
     'personalNotes',
     'categories',
     'createdDateTime',
-    'lastModifiedDateTime'
-  ]
+    'lastModifiedDateTime',
+  ],
 };
 
 /**
@@ -53,43 +56,54 @@ function formatContact(contact, verbosity = 'standard') {
 
   // Email addresses
   if (contact.emailAddresses?.length > 0) {
-    const emails = contact.emailAddresses.map(e => e.address).join(', ');
+    const emails = contact.emailAddresses.map((e) => e.address).join(', ');
     lines.push(`**Email**: ${emails}`);
   }
 
   // Phone numbers
   const phones = [];
   if (contact.mobilePhone) phones.push(`Mobile: ${contact.mobilePhone}`);
-  if (contact.businessPhones?.length > 0) phones.push(`Work: ${contact.businessPhones[0]}`);
-  if (contact.homePhones?.length > 0) phones.push(`Home: ${contact.homePhones[0]}`);
+  if (contact.businessPhones?.length > 0)
+    phones.push(`Work: ${contact.businessPhones[0]}`);
+  if (contact.homePhones?.length > 0)
+    phones.push(`Home: ${contact.homePhones[0]}`);
   if (phones.length > 0) {
     lines.push(`**Phone**: ${phones.join(' | ')}`);
   }
 
   // Company info
   if (contact.companyName || contact.jobTitle) {
-    const company = [contact.jobTitle, contact.companyName].filter(Boolean).join(' at ');
+    const company = [contact.jobTitle, contact.companyName]
+      .filter(Boolean)
+      .join(' at ');
     lines.push(`**Company**: ${company}`);
   }
 
   // Full verbosity extras
   if (verbosity === 'full') {
     if (contact.department) lines.push(`**Department**: ${contact.department}`);
-    if (contact.officeLocation) lines.push(`**Office**: ${contact.officeLocation}`);
+    if (contact.officeLocation)
+      lines.push(`**Office**: ${contact.officeLocation}`);
     if (contact.birthday) lines.push(`**Birthday**: ${contact.birthday}`);
 
     // Addresses
     if (contact.businessAddress?.city) {
       const addr = contact.businessAddress;
-      lines.push(`**Business Address**: ${[addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ')}`);
+      lines.push(
+        `**Business Address**: ${[addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ')}`
+      );
     }
     if (contact.homeAddress?.city) {
       const addr = contact.homeAddress;
-      lines.push(`**Home Address**: ${[addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ')}`);
+      lines.push(
+        `**Home Address**: ${[addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ')}`
+      );
     }
 
     if (contact.personalNotes) {
-      lines.push(`**Notes**: ${contact.personalNotes.substring(0, 200)}${contact.personalNotes.length > 200 ? '...' : ''}`);
+      lines.push(
+        `**Notes**: ${contact.personalNotes.substring(0, 200)}${contact.personalNotes.length > 200 ? '...' : ''}`
+      );
     }
   }
 
@@ -110,7 +124,8 @@ async function handleListContacts(args) {
   try {
     const accessToken = await ensureAuthenticated();
 
-    const fields = verbosity === 'full' ? CONTACT_FIELDS.full : CONTACT_FIELDS.list;
+    const fields =
+      verbosity === 'full' ? CONTACT_FIELDS.full : CONTACT_FIELDS.list;
     const endpoint = folder
       ? `me/contactFolders/${folder}/contacts`
       : 'me/contacts';
@@ -118,10 +133,16 @@ async function handleListContacts(args) {
     const queryParams = {
       $select: fields.join(','),
       $top: count,
-      $orderby: 'displayName'
+      $orderby: 'displayName',
     };
 
-    const response = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+    const response = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      queryParams
+    );
     const contacts = response.value || [];
 
     let output = [];
@@ -129,19 +150,30 @@ async function handleListContacts(args) {
     output.push(`**Total**: ${contacts.length}`);
     output.push('');
 
-    contacts.forEach(contact => {
+    contacts.forEach((contact) => {
       output.push(formatContact(contact, verbosity));
     });
 
     return {
-      content: [{ type: "text", text: output.join('\n') }],
-      _meta: { count: contacts.length }
+      content: [{ type: 'text', text: output.join('\n') }],
+      _meta: { count: contacts.length },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error listing contacts: ${error.message}` }] };
+    return {
+      content: [
+        { type: 'text', text: `Error listing contacts: ${error.message}` },
+      ],
+    };
   }
 }
 
@@ -154,13 +186,14 @@ async function handleSearchContacts(args) {
   const verbosity = args.outputVerbosity || 'standard';
 
   if (!query) {
-    return { content: [{ type: "text", text: "Search query is required." }] };
+    return { content: [{ type: 'text', text: 'Search query is required.' }] };
   }
 
   try {
     const accessToken = await ensureAuthenticated();
 
-    const fields = verbosity === 'full' ? CONTACT_FIELDS.full : CONTACT_FIELDS.list;
+    const fields =
+      verbosity === 'full' ? CONTACT_FIELDS.full : CONTACT_FIELDS.list;
     const endpoint = 'me/contacts';
 
     // Build filter for name or email
@@ -170,10 +203,16 @@ async function handleSearchContacts(args) {
       $select: fields.join(','),
       $filter: filter,
       $top: count,
-      $orderby: 'displayName'
+      $orderby: 'displayName',
     };
 
-    const response = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+    const response = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      queryParams
+    );
     const contacts = response.value || [];
 
     let output = [];
@@ -182,19 +221,30 @@ async function handleSearchContacts(args) {
     output.push(`**Found**: ${contacts.length}`);
     output.push('');
 
-    contacts.forEach(contact => {
+    contacts.forEach((contact) => {
       output.push(formatContact(contact, verbosity));
     });
 
     return {
-      content: [{ type: "text", text: output.join('\n') }],
-      _meta: { query, count: contacts.length }
+      content: [{ type: 'text', text: output.join('\n') }],
+      _meta: { query, count: contacts.length },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error searching contacts: ${error.message}` }] };
+    return {
+      content: [
+        { type: 'text', text: `Error searching contacts: ${error.message}` },
+      ],
+    };
   }
 }
 
@@ -205,7 +255,7 @@ async function handleGetContact(args) {
   const contactId = args.id;
 
   if (!contactId) {
-    return { content: [{ type: "text", text: "Contact ID is required." }] };
+    return { content: [{ type: 'text', text: 'Contact ID is required.' }] };
   }
 
   try {
@@ -213,22 +263,39 @@ async function handleGetContact(args) {
 
     const endpoint = `me/contacts/${encodeURIComponent(contactId)}`;
     const queryParams = {
-      $select: CONTACT_FIELDS.full.join(',')
+      $select: CONTACT_FIELDS.full.join(','),
     };
 
-    const contact = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+    const contact = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      queryParams
+    );
 
     const output = formatContact(contact, 'full');
 
     return {
-      content: [{ type: "text", text: `# Contact Details\n\n${output}` }],
-      _meta: { contactId: contact.id }
+      content: [{ type: 'text', text: `# Contact Details\n\n${output}` }],
+      _meta: { contactId: contact.id },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error getting contact: ${error.message}` }] };
+    return {
+      content: [
+        { type: 'text', text: `Error getting contact: ${error.message}` },
+      ],
+    };
   }
 }
 
@@ -236,10 +303,15 @@ async function handleGetContact(args) {
  * Create contact handler
  */
 async function handleCreateContact(args) {
-  const { displayName, email, mobilePhone, companyName, jobTitle, notes } = args;
+  const { displayName, email, mobilePhone, companyName, jobTitle, notes } =
+    args;
 
   if (!displayName && !email) {
-    return { content: [{ type: "text", text: "At least displayName or email is required." }] };
+    return {
+      content: [
+        { type: 'text', text: 'At least displayName or email is required.' },
+      ],
+    };
   }
 
   try {
@@ -249,7 +321,9 @@ async function handleCreateContact(args) {
 
     if (displayName) contactData.displayName = displayName;
     if (email) {
-      contactData.emailAddresses = [{ address: email, name: displayName || email }];
+      contactData.emailAddresses = [
+        { address: email, name: displayName || email },
+      ];
     }
     if (mobilePhone) contactData.mobilePhone = mobilePhone;
     if (companyName) contactData.companyName = companyName;
@@ -263,20 +337,38 @@ async function handleCreateContact(args) {
       contactData.surname = parts.slice(1).join(' ');
     }
 
-    const contact = await callGraphAPI(accessToken, 'POST', 'me/contacts', contactData);
+    const contact = await callGraphAPI(
+      accessToken,
+      'POST',
+      'me/contacts',
+      contactData
+    );
 
     return {
-      content: [{
-        type: "text",
-        text: `# Contact Created\n\n${formatContact(contact, 'full')}`
-      }],
-      _meta: { contactId: contact.id }
+      content: [
+        {
+          type: 'text',
+          text: `# Contact Created\n\n${formatContact(contact, 'full')}`,
+        },
+      ],
+      _meta: { contactId: contact.id },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error creating contact: ${error.message}` }] };
+    return {
+      content: [
+        { type: 'text', text: `Error creating contact: ${error.message}` },
+      ],
+    };
   }
 }
 
@@ -284,10 +376,11 @@ async function handleCreateContact(args) {
  * Update contact handler
  */
 async function handleUpdateContact(args) {
-  const { id, displayName, email, mobilePhone, companyName, jobTitle, notes } = args;
+  const { id, displayName, email, mobilePhone, companyName, jobTitle, notes } =
+    args;
 
   if (!id) {
-    return { content: [{ type: "text", text: "Contact ID is required." }] };
+    return { content: [{ type: 'text', text: 'Contact ID is required.' }] };
   }
 
   try {
@@ -312,20 +405,38 @@ async function handleUpdateContact(args) {
     if (notes !== undefined) contactData.personalNotes = notes;
 
     const endpoint = `me/contacts/${encodeURIComponent(id)}`;
-    const contact = await callGraphAPI(accessToken, 'PATCH', endpoint, contactData);
+    const contact = await callGraphAPI(
+      accessToken,
+      'PATCH',
+      endpoint,
+      contactData
+    );
 
     return {
-      content: [{
-        type: "text",
-        text: `# Contact Updated\n\n${formatContact(contact, 'full')}`
-      }],
-      _meta: { contactId: contact.id }
+      content: [
+        {
+          type: 'text',
+          text: `# Contact Updated\n\n${formatContact(contact, 'full')}`,
+        },
+      ],
+      _meta: { contactId: contact.id },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error updating contact: ${error.message}` }] };
+    return {
+      content: [
+        { type: 'text', text: `Error updating contact: ${error.message}` },
+      ],
+    };
   }
 }
 
@@ -336,7 +447,7 @@ async function handleDeleteContact(args) {
   const contactId = args.id;
 
   if (!contactId) {
-    return { content: [{ type: "text", text: "Contact ID is required." }] };
+    return { content: [{ type: 'text', text: 'Contact ID is required.' }] };
   }
 
   try {
@@ -346,17 +457,30 @@ async function handleDeleteContact(args) {
     await callGraphAPI(accessToken, 'DELETE', endpoint);
 
     return {
-      content: [{
-        type: "text",
-        text: `# Contact Deleted\n\nContact with ID \`${contactId}\` has been deleted.`
-      }],
-      _meta: { contactId, deleted: true }
+      content: [
+        {
+          type: 'text',
+          text: `# Contact Deleted\n\nContact with ID \`${contactId}\` has been deleted.`,
+        },
+      ],
+      _meta: { contactId, deleted: true },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error deleting contact: ${error.message}` }] };
+    return {
+      content: [
+        { type: 'text', text: `Error deleting contact: ${error.message}` },
+      ],
+    };
   }
 }
 
@@ -368,7 +492,7 @@ async function handleSearchPeople(args) {
   const count = Math.min(args.count || 25, 50);
 
   if (!query) {
-    return { content: [{ type: "text", text: "Search query is required." }] };
+    return { content: [{ type: 'text', text: 'Search query is required.' }] };
   }
 
   try {
@@ -378,10 +502,17 @@ async function handleSearchPeople(args) {
     const queryParams = {
       $search: `"${query}"`,
       $top: count,
-      $select: 'id,displayName,emailAddresses,phones,companyName,jobTitle,department,userPrincipalName,personType'
+      $select:
+        'id,displayName,emailAddresses,phones,companyName,jobTitle,department,userPrincipalName,personType',
     };
 
-    const response = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+    const response = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      queryParams
+    );
     const people = response.value || [];
 
     let output = [];
@@ -406,7 +537,9 @@ async function handleSearchPeople(args) {
 
       // Company info
       if (person.companyName || person.jobTitle) {
-        const company = [person.jobTitle, person.companyName].filter(Boolean).join(' at ');
+        const company = [person.jobTitle, person.companyName]
+          .filter(Boolean)
+          .join(' at ');
         output.push(`**Position**: ${company}`);
       }
       if (person.department) {
@@ -422,190 +555,202 @@ async function handleSearchPeople(args) {
     });
 
     return {
-      content: [{ type: "text", text: output.join('\n') }],
-      _meta: { query, count: people.length }
+      content: [{ type: 'text', text: output.join('\n') }],
+      _meta: { query, count: people.length },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error searching people: ${error.message}` }] };
+    return {
+      content: [
+        { type: 'text', text: `Error searching people: ${error.message}` },
+      ],
+    };
   }
 }
 
 // Tool definitions
 const contactsTools = [
   {
-    name: "list-contacts",
-    description: "List personal contacts from Outlook",
+    name: 'list-contacts',
+    description: 'List personal contacts from Outlook',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         count: {
-          type: "number",
-          description: "Number of contacts to retrieve (default: 50, max: 100)"
+          type: 'number',
+          description: 'Number of contacts to retrieve (default: 50, max: 100)',
         },
         folder: {
-          type: "string",
-          description: "Contact folder ID (default: main contacts folder)"
+          type: 'string',
+          description: 'Contact folder ID (default: main contacts folder)',
         },
         outputVerbosity: {
-          type: "string",
-          enum: ["minimal", "standard", "full"],
-          description: "Output detail level (default: standard)"
-        }
+          type: 'string',
+          enum: ['minimal', 'standard', 'full'],
+          description: 'Output detail level (default: standard)',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleListContacts
+    handler: handleListContacts,
   },
   {
-    name: "search-contacts",
-    description: "Search personal contacts by name or email",
+    name: 'search-contacts',
+    description: 'Search personal contacts by name or email',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         query: {
-          type: "string",
-          description: "Search query (name or email)"
+          type: 'string',
+          description: 'Search query (name or email)',
         },
         count: {
-          type: "number",
-          description: "Maximum results to return (default: 25, max: 50)"
+          type: 'number',
+          description: 'Maximum results to return (default: 25, max: 50)',
         },
         outputVerbosity: {
-          type: "string",
-          enum: ["minimal", "standard", "full"],
-          description: "Output detail level (default: standard)"
-        }
+          type: 'string',
+          enum: ['minimal', 'standard', 'full'],
+          description: 'Output detail level (default: standard)',
+        },
       },
-      required: ["query"]
+      required: ['query'],
     },
-    handler: handleSearchContacts
+    handler: handleSearchContacts,
   },
   {
-    name: "get-contact",
-    description: "Get full details of a specific contact",
+    name: 'get-contact',
+    description: 'Get full details of a specific contact',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         id: {
-          type: "string",
-          description: "Contact ID"
-        }
+          type: 'string',
+          description: 'Contact ID',
+        },
       },
-      required: ["id"]
+      required: ['id'],
     },
-    handler: handleGetContact
+    handler: handleGetContact,
   },
   {
-    name: "create-contact",
-    description: "Create a new personal contact",
+    name: 'create-contact',
+    description: 'Create a new personal contact',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         displayName: {
-          type: "string",
-          description: "Full name of the contact"
+          type: 'string',
+          description: 'Full name of the contact',
         },
         email: {
-          type: "string",
-          description: "Primary email address"
+          type: 'string',
+          description: 'Primary email address',
         },
         mobilePhone: {
-          type: "string",
-          description: "Mobile phone number"
+          type: 'string',
+          description: 'Mobile phone number',
         },
         companyName: {
-          type: "string",
-          description: "Company or organization name"
+          type: 'string',
+          description: 'Company or organization name',
         },
         jobTitle: {
-          type: "string",
-          description: "Job title"
+          type: 'string',
+          description: 'Job title',
         },
         notes: {
-          type: "string",
-          description: "Personal notes about the contact"
-        }
+          type: 'string',
+          description: 'Personal notes about the contact',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleCreateContact
+    handler: handleCreateContact,
   },
   {
-    name: "update-contact",
-    description: "Update an existing contact",
+    name: 'update-contact',
+    description: 'Update an existing contact',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         id: {
-          type: "string",
-          description: "Contact ID to update"
+          type: 'string',
+          description: 'Contact ID to update',
         },
         displayName: {
-          type: "string",
-          description: "Updated full name"
+          type: 'string',
+          description: 'Updated full name',
         },
         email: {
-          type: "string",
-          description: "Updated primary email"
+          type: 'string',
+          description: 'Updated primary email',
         },
         mobilePhone: {
-          type: "string",
-          description: "Updated mobile phone"
+          type: 'string',
+          description: 'Updated mobile phone',
         },
         companyName: {
-          type: "string",
-          description: "Updated company name"
+          type: 'string',
+          description: 'Updated company name',
         },
         jobTitle: {
-          type: "string",
-          description: "Updated job title"
+          type: 'string',
+          description: 'Updated job title',
         },
         notes: {
-          type: "string",
-          description: "Updated notes"
-        }
+          type: 'string',
+          description: 'Updated notes',
+        },
       },
-      required: ["id"]
+      required: ['id'],
     },
-    handler: handleUpdateContact
+    handler: handleUpdateContact,
   },
   {
-    name: "delete-contact",
-    description: "Delete a contact",
+    name: 'delete-contact',
+    description: 'Delete a contact',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         id: {
-          type: "string",
-          description: "Contact ID to delete"
-        }
+          type: 'string',
+          description: 'Contact ID to delete',
+        },
       },
-      required: ["id"]
+      required: ['id'],
     },
-    handler: handleDeleteContact
+    handler: handleDeleteContact,
   },
   {
-    name: "search-people",
-    description: "Search for people by relevance (includes contacts, directory, and recent communications)",
+    name: 'search-people',
+    description:
+      'Search for people by relevance (includes contacts, directory, and recent communications)',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         query: {
-          type: "string",
-          description: "Search query (name, email, company)"
+          type: 'string',
+          description: 'Search query (name, email, company)',
         },
         count: {
-          type: "number",
-          description: "Maximum results to return (default: 25, max: 50)"
-        }
+          type: 'number',
+          description: 'Maximum results to return (default: 25, max: 50)',
+        },
       },
-      required: ["query"]
+      required: ['query'],
     },
-    handler: handleSearchPeople
-  }
+    handler: handleSearchPeople,
+  },
 ];
 
 module.exports = {
@@ -616,5 +761,5 @@ module.exports = {
   handleCreateContact,
   handleUpdateContact,
   handleDeleteContact,
-  handleSearchPeople
+  handleSearchPeople,
 };

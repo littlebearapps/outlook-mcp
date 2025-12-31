@@ -2,10 +2,10 @@
  * Attachment handling for Outlook MCP server
  * Provides tools to list and download email attachments via Microsoft Graph API
  */
-const https = require('https');
+const _https = require('https'); // Reserved for future use
 const fs = require('fs');
 const path = require('path');
-const config = require('../config');
+const _config = require('../config'); // Reserved for future use
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 
@@ -20,10 +20,12 @@ async function handleListAttachments(args) {
 
   if (!messageId) {
     return {
-      content: [{
-        type: "text",
-        text: "Error: messageId is required"
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Error: messageId is required',
+        },
+      ],
     };
   }
 
@@ -33,49 +35,68 @@ async function handleListAttachments(args) {
     // Call Graph API to get attachments
     const endpoint = `/me/messages/${messageId}/attachments`;
     const params = {
-      $select: 'id,name,contentType,size,isInline'
+      $select: 'id,name,contentType,size,isInline',
     };
 
     console.error(`Fetching attachments for message: ${messageId}`);
-    const response = await callGraphAPI(accessToken, 'GET', endpoint, null, params);
+    const response = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      params
+    );
 
     if (!response.value || response.value.length === 0) {
       return {
-        content: [{
-          type: "text",
-          text: "No attachments found for this email."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'No attachments found for this email.',
+          },
+        ],
       };
     }
 
     // Format attachment list
-    const attachmentList = response.value.map((att, index) => {
-      const sizeKB = (att.size / 1024).toFixed(1);
-      const inline = att.isInline ? ' [inline]' : '';
-      return `${index + 1}. ${att.name}${inline}\n   Type: ${att.contentType}\n   Size: ${sizeKB} KB\n   ID: ${att.id}`;
-    }).join('\n\n');
+    const attachmentList = response.value
+      .map((att, index) => {
+        const sizeKB = (att.size / 1024).toFixed(1);
+        const inline = att.isInline ? ' [inline]' : '';
+        return `${index + 1}. ${att.name}${inline}\n   Type: ${att.contentType}\n   Size: ${sizeKB} KB\n   ID: ${att.id}`;
+      })
+      .join('\n\n');
 
     return {
-      content: [{
-        type: "text",
-        text: `Found ${response.value.length} attachment(s):\n\n${attachmentList}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Found ${response.value.length} attachment(s):\n\n${attachmentList}`,
+        },
+      ],
     };
   } catch (error) {
-    if (error.message === 'Authentication required' || error.message === 'UNAUTHORIZED') {
+    if (
+      error.message === 'Authentication required' ||
+      error.message === 'UNAUTHORIZED'
+    ) {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error listing attachments: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error listing attachments: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -93,10 +114,12 @@ async function handleDownloadAttachment(args) {
 
   if (!messageId || !attachmentId) {
     return {
-      content: [{
-        type: "text",
-        text: "Error: Both messageId and attachmentId are required"
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Error: Both messageId and attachmentId are required',
+        },
+      ],
     };
   }
 
@@ -107,14 +130,22 @@ async function handleDownloadAttachment(args) {
     const metadataEndpoint = `/me/messages/${messageId}/attachments/${attachmentId}`;
     console.error(`Fetching attachment metadata: ${attachmentId}`);
 
-    const metadata = await callGraphAPI(accessToken, 'GET', metadataEndpoint, null, {});
+    const metadata = await callGraphAPI(
+      accessToken,
+      'GET',
+      metadataEndpoint,
+      null,
+      {}
+    );
 
     if (!metadata) {
       return {
-        content: [{
-          type: "text",
-          text: "Error: Attachment not found"
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'Error: Attachment not found',
+          },
+        ],
       };
     }
 
@@ -127,10 +158,12 @@ async function handleDownloadAttachment(args) {
 
       if (!contentBytes) {
         return {
-          content: [{
-            type: "text",
-            text: "Error: No content found in attachment"
-          }]
+          content: [
+            {
+              type: 'text',
+              text: 'Error: No content found in attachment',
+            },
+          ],
         };
       }
 
@@ -145,50 +178,67 @@ async function handleDownloadAttachment(args) {
       const sizeKB = (buffer.length / 1024).toFixed(1);
 
       return {
-        content: [{
-          type: "text",
-          text: `Successfully downloaded attachment:\n\nFilename: ${filename}\nType: ${contentType}\nSize: ${sizeKB} KB\nSaved to: ${outputPath}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Successfully downloaded attachment:\n\nFilename: ${filename}\nType: ${contentType}\nSize: ${sizeKB} KB\nSaved to: ${outputPath}`,
+          },
+        ],
       };
     } else if (metadata['@odata.type'] === '#microsoft.graph.itemAttachment') {
       // Item attachments (embedded emails, calendar items) need different handling
       return {
-        content: [{
-          type: "text",
-          text: `This is an embedded item attachment (${metadata.name}). Item attachments cannot be downloaded as files directly. They contain embedded Outlook items like emails or calendar events.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `This is an embedded item attachment (${metadata.name}). Item attachments cannot be downloaded as files directly. They contain embedded Outlook items like emails or calendar events.`,
+          },
+        ],
       };
-    } else if (metadata['@odata.type'] === '#microsoft.graph.referenceAttachment') {
+    } else if (
+      metadata['@odata.type'] === '#microsoft.graph.referenceAttachment'
+    ) {
       // Reference attachments are links to cloud files
       return {
-        content: [{
-          type: "text",
-          text: `This is a reference attachment (cloud link):\n\nName: ${metadata.name}\nThis attachment is a link to a file stored in the cloud and cannot be downloaded directly.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `This is a reference attachment (cloud link):\n\nName: ${metadata.name}\nThis attachment is a link to a file stored in the cloud and cannot be downloaded directly.`,
+          },
+        ],
       };
     } else {
       return {
-        content: [{
-          type: "text",
-          text: `Unknown attachment type: ${metadata['@odata.type']}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Unknown attachment type: ${metadata['@odata.type']}`,
+          },
+        ],
       };
     }
   } catch (error) {
-    if (error.message === 'Authentication required' || error.message === 'UNAUTHORIZED') {
+    if (
+      error.message === 'Authentication required' ||
+      error.message === 'UNAUTHORIZED'
+    ) {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error downloading attachment: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error downloading attachment: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -205,10 +255,12 @@ async function handleGetAttachmentContent(args) {
 
   if (!messageId || !attachmentId) {
     return {
-      content: [{
-        type: "text",
-        text: "Error: Both messageId and attachmentId are required"
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Error: Both messageId and attachmentId are required',
+        },
+      ],
     };
   }
 
@@ -222,10 +274,12 @@ async function handleGetAttachmentContent(args) {
 
     if (!response) {
       return {
-        content: [{
-          type: "text",
-          text: "Error: Attachment not found"
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'Error: Attachment not found',
+          },
+        ],
       };
     }
 
@@ -237,49 +291,69 @@ async function handleGetAttachmentContent(args) {
     // For file attachments, return metadata and indicate content is available
     if (response['@odata.type'] === '#microsoft.graph.fileAttachment') {
       // Check if it's a text-based file we can display
-      const textTypes = ['text/', 'application/json', 'application/xml', 'application/javascript'];
-      const isText = textTypes.some(t => contentType.startsWith(t));
+      const textTypes = [
+        'text/',
+        'application/json',
+        'application/xml',
+        'application/javascript',
+      ];
+      const isText = textTypes.some((t) => contentType.startsWith(t));
 
       if (isText && response.contentBytes) {
-        const content = Buffer.from(response.contentBytes, 'base64').toString('utf-8');
+        const content = Buffer.from(response.contentBytes, 'base64').toString(
+          'utf-8'
+        );
         return {
-          content: [{
-            type: "text",
-            text: `Attachment: ${filename}\nType: ${contentType}\nSize: ${sizeKB} KB\n\n--- Content ---\n${content}`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `Attachment: ${filename}\nType: ${contentType}\nSize: ${sizeKB} KB\n\n--- Content ---\n${content}`,
+            },
+          ],
         };
       }
 
       // For binary files, just return metadata
       return {
-        content: [{
-          type: "text",
-          text: `Attachment: ${filename}\nType: ${contentType}\nSize: ${sizeKB} KB\n\nThis is a binary file. Use 'download-attachment' to save it to disk.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Attachment: ${filename}\nType: ${contentType}\nSize: ${sizeKB} KB\n\nThis is a binary file. Use 'download-attachment' to save it to disk.`,
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Attachment: ${filename}\nType: ${response['@odata.type']}\nSize: ${sizeKB} KB`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Attachment: ${filename}\nType: ${response['@odata.type']}\nSize: ${sizeKB} KB`,
+        },
+      ],
     };
   } catch (error) {
-    if (error.message === 'Authentication required' || error.message === 'UNAUTHORIZED') {
+    if (
+      error.message === 'Authentication required' ||
+      error.message === 'UNAUTHORIZED'
+    ) {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error getting attachment content: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error getting attachment content: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -287,5 +361,5 @@ async function handleGetAttachmentContent(args) {
 module.exports = {
   handleListAttachments,
   handleDownloadAttachment,
-  handleGetAttachmentContent
+  handleGetAttachmentContent,
 };

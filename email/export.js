@@ -8,15 +8,18 @@ const fs = require('fs');
 const path = require('path');
 const { callGraphAPI, callGraphAPIRaw } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
-const { formatEmailContent, VERBOSITY } = require('../utils/response-formatter');
+const {
+  formatEmailContent,
+  VERBOSITY,
+} = require('../utils/response-formatter');
 const { getEmailFields } = require('../utils/field-presets');
 
 // Export format constants
 const EXPORT_FORMATS = {
   MIME: 'mime',
-  EML: 'eml',      // Alias for MIME
+  EML: 'eml', // Alias for MIME
   MARKDOWN: 'markdown',
-  JSON: 'json'
+  JSON: 'json',
 };
 
 /**
@@ -36,10 +39,12 @@ async function handleExportEmail(args) {
 
   if (!emailId) {
     return {
-      content: [{
-        type: "text",
-        text: "Email ID is required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Email ID is required.',
+        },
+      ],
     };
   }
 
@@ -58,15 +63,19 @@ async function handleExportEmail(args) {
 
     if (!email) {
       return {
-        content: [{
-          type: "text",
-          text: `Email with ID ${emailId} not found.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Email with ID ${emailId} not found.`,
+          },
+        ],
       };
     }
 
     // Generate filename based on email metadata
-    const timestamp = new Date(email.receivedDateTime).toISOString().slice(0, 10);
+    const timestamp = new Date(email.receivedDateTime)
+      .toISOString()
+      .slice(0, 10);
     const safeSubject = sanitizeFilename(email.subject || 'no-subject');
     const extension = getExtension(format);
     const defaultFilename = `${timestamp}_${safeSubject}.${extension}`;
@@ -96,17 +105,19 @@ async function handleExportEmail(args) {
       // Markdown export using existing formatter
       content = formatEmailContent(email, VERBOSITY.FULL, {
         includeHeaders: true,
-        includeAllHeaders: true
+        includeAllHeaders: true,
       });
     } else if (format === EXPORT_FORMATS.JSON) {
       // JSON export - full email object
       content = JSON.stringify(email, null, 2);
     } else {
       return {
-        content: [{
-          type: "text",
-          text: `Unknown format: ${format}. Supported: mime, eml, markdown, json`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Unknown format: ${format}. Supported: mime, eml, markdown, json`,
+          },
+        ],
       };
     }
 
@@ -115,7 +126,11 @@ async function handleExportEmail(args) {
 
     // Handle attachments
     if (includeAttachments && email.hasAttachments) {
-      attachmentsSaved = await saveAttachments(accessToken, emailId, path.dirname(finalPath));
+      attachmentsSaved = await saveAttachments(
+        accessToken,
+        emailId,
+        path.dirname(finalPath)
+      );
     }
 
     // Build response
@@ -137,34 +152,39 @@ async function handleExportEmail(args) {
     }
 
     return {
-      content: [{
-        type: "text",
-        text: resultText
-      }],
+      content: [
+        {
+          type: 'text',
+          text: resultText,
+        },
+      ],
       _meta: {
         filePath: finalPath,
         format: format,
         sizeBytes: content.length,
         attachmentsSaved: attachmentsSaved.length,
-        emailId: emailId
-      }
+        emailId: emailId,
+      },
     };
-
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Export failed: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Export failed: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -188,10 +208,12 @@ async function handleBatchExportEmails(args) {
 
   if (!outputDir) {
     return {
-      content: [{
-        type: "text",
-        text: "Output directory is required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Output directory is required.',
+        },
+      ],
     };
   }
 
@@ -206,16 +228,21 @@ async function handleBatchExportEmails(args) {
 
     // If searchQuery provided, fetch matching emails
     if (Object.keys(searchQuery).length > 0 && emailIds.length === 0) {
-      const searchResults = await searchEmailsForExport(accessToken, searchQuery);
-      idsToExport = searchResults.map(e => e.id);
+      const searchResults = await searchEmailsForExport(
+        accessToken,
+        searchQuery
+      );
+      idsToExport = searchResults.map((e) => e.id);
     }
 
     if (idsToExport.length === 0) {
       return {
-        content: [{
-          type: "text",
-          text: "No emails to export. Provide emailIds or searchQuery."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'No emails to export. Provide emailIds or searchQuery.',
+          },
+        ],
       };
     }
 
@@ -237,8 +264,8 @@ async function handleBatchExportEmails(args) {
     );
 
     // Build response
-    const successful = results.filter(r => r.success);
-    const failed = results.filter(r => !r.success);
+    const successful = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success);
 
     let resultText = `## Batch Export Complete\n\n`;
     resultText += `| Metric | Value |\n`;
@@ -250,7 +277,10 @@ async function handleBatchExportEmails(args) {
     resultText += `| Format | ${format.toUpperCase()} |\n`;
 
     // Total size
-    const totalBytes = successful.reduce((sum, r) => sum + (r.sizeBytes || 0), 0);
+    const totalBytes = successful.reduce(
+      (sum, r) => sum + (r.sizeBytes || 0),
+      0
+    );
     resultText += `| Total Size | ${(totalBytes / 1024).toFixed(1)} KB |\n`;
 
     if (failed.length > 0) {
@@ -264,35 +294,40 @@ async function handleBatchExportEmails(args) {
     }
 
     return {
-      content: [{
-        type: "text",
-        text: resultText
-      }],
+      content: [
+        {
+          type: 'text',
+          text: resultText,
+        },
+      ],
       _meta: {
         outputDir: outputDir,
         format: format,
         total: results.length,
         successful: successful.length,
         failed: failed.length,
-        totalBytes: totalBytes
-      }
+        totalBytes: totalBytes,
+      },
     };
-
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Batch export failed: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Batch export failed: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -307,16 +342,20 @@ async function searchEmailsForExport(accessToken, query) {
   // Build filter conditions
   const filterParts = [];
   if (query.receivedAfter) {
-    filterParts.push(`receivedDateTime ge ${new Date(query.receivedAfter).toISOString()}`);
+    filterParts.push(
+      `receivedDateTime ge ${new Date(query.receivedAfter).toISOString()}`
+    );
   }
   if (query.receivedBefore) {
-    filterParts.push(`receivedDateTime le ${new Date(query.receivedBefore).toISOString()}`);
+    filterParts.push(
+      `receivedDateTime le ${new Date(query.receivedBefore).toISOString()}`
+    );
   }
 
   const params = {
     $select: 'id',
     $top: maxResults,
-    $orderby: 'receivedDateTime desc'
+    $orderby: 'receivedDateTime desc',
   };
 
   if (filterParts.length > 0) {
@@ -350,7 +389,14 @@ async function searchEmailsForExport(accessToken, query) {
 /**
  * Export emails with concurrency limit
  */
-async function exportWithConcurrency(accessToken, emailIds, format, outputDir, includeAttachments, maxConcurrent) {
+async function exportWithConcurrency(
+  accessToken,
+  emailIds,
+  format,
+  outputDir,
+  includeAttachments,
+  maxConcurrent
+) {
   const results = [];
   const inProgress = new Set();
   let index = 0;
@@ -359,12 +405,17 @@ async function exportWithConcurrency(accessToken, emailIds, format, outputDir, i
     // Start new exports up to concurrency limit
     while (index < emailIds.length && inProgress.size < maxConcurrent) {
       const emailId = emailIds[index];
-      const promise = exportSingleForBatch(accessToken, emailId, format, outputDir, includeAttachments)
-        .then(result => {
-          inProgress.delete(promise);
-          results.push(result);
-          return result;
-        });
+      const promise = exportSingleForBatch(
+        accessToken,
+        emailId,
+        format,
+        outputDir,
+        includeAttachments
+      ).then((result) => {
+        inProgress.delete(promise);
+        results.push(result);
+        return result;
+      });
       inProgress.add(promise);
       index++;
     }
@@ -381,7 +432,13 @@ async function exportWithConcurrency(accessToken, emailIds, format, outputDir, i
 /**
  * Export single email for batch operation
  */
-async function exportSingleForBatch(accessToken, emailId, format, outputDir, includeAttachments) {
+async function exportSingleForBatch(
+  accessToken,
+  emailId,
+  format,
+  outputDir,
+  includeAttachments
+) {
   try {
     const selectFields = getEmailFields('export');
     const email = await callGraphAPI(
@@ -392,7 +449,9 @@ async function exportSingleForBatch(accessToken, emailId, format, outputDir, inc
       { $select: selectFields }
     );
 
-    const timestamp = new Date(email.receivedDateTime).toISOString().slice(0, 10);
+    const timestamp = new Date(email.receivedDateTime)
+      .toISOString()
+      .slice(0, 10);
     const safeSubject = sanitizeFilename(email.subject || 'no-subject');
     const extension = getExtension(format);
     const filename = `${timestamp}_${safeSubject}.${extension}`;
@@ -402,7 +461,9 @@ async function exportSingleForBatch(accessToken, emailId, format, outputDir, inc
     if (format === EXPORT_FORMATS.MIME || format === EXPORT_FORMATS.EML) {
       content = await callGraphAPIRaw(accessToken, emailId);
     } else if (format === EXPORT_FORMATS.MARKDOWN) {
-      content = formatEmailContent(email, VERBOSITY.FULL, { includeHeaders: true });
+      content = formatEmailContent(email, VERBOSITY.FULL, {
+        includeHeaders: true,
+      });
     } else {
       content = JSON.stringify(email, null, 2);
     }
@@ -421,13 +482,13 @@ async function exportSingleForBatch(accessToken, emailId, format, outputDir, inc
       emailId: emailId,
       filePath: filePath,
       sizeBytes: content.length,
-      attachments: attachmentCount
+      attachments: attachmentCount,
     };
   } catch (error) {
     return {
       success: false,
       emailId: emailId,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -452,13 +513,16 @@ async function saveAttachments(accessToken, emailId, outputDir) {
     for (const att of response.value) {
       if (att.contentBytes) {
         const safeFilename = sanitizeFilename(att.name || 'attachment');
-        const filePath = path.join(outputDir, `${emailId.substring(0, 8)}_${safeFilename}`);
+        const filePath = path.join(
+          outputDir,
+          `${emailId.substring(0, 8)}_${safeFilename}`
+        );
         const buffer = Buffer.from(att.contentBytes, 'base64');
         fs.writeFileSync(filePath, buffer);
         saved.push({
           filename: safeFilename,
           path: filePath,
-          size: buffer.length
+          size: buffer.length,
         });
       }
     }
@@ -473,12 +537,15 @@ async function saveAttachments(accessToken, emailId, outputDir) {
  * Sanitize filename for filesystem
  */
 function sanitizeFilename(name) {
-  return name
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')  // Replace illegal chars
-    .replace(/\s+/g, '_')                      // Replace spaces
-    .replace(/_+/g, '_')                       // Collapse multiple underscores
-    .substring(0, 50)                          // Limit length
-    .replace(/^[._]+|[._]+$/g, '');            // Remove leading/trailing dots/underscores
+  return (
+    name
+      // eslint-disable-next-line no-control-regex
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') // Replace illegal chars including control chars
+      .replace(/\s+/g, '_') // Replace spaces
+      .replace(/_+/g, '_') // Collapse multiple underscores
+      .substring(0, 50) // Limit length
+      .replace(/^[._]+|[._]+$/g, '')
+  ); // Remove leading/trailing dots/underscores
 }
 
 /**
@@ -500,5 +567,5 @@ function getExtension(format) {
 module.exports = {
   handleExportEmail,
   handleBatchExportEmails,
-  EXPORT_FORMATS
+  EXPORT_FORMATS,
 };

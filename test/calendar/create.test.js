@@ -58,9 +58,9 @@ describe('handleCreateEvent', () => {
 
     const specifiedTimeZone = 'Pacific Standard Time';
     const args = {
-        subject: 'Test Event with Specific Start Timezone',
-        start: { dateTime: '2024-03-10T10:00:00', timeZone: specifiedTimeZone },
-        end: { dateTime: '2024-03-10T11:00:00' }, // No timezone for end
+      subject: 'Test Event with Specific Start Timezone',
+      start: { dateTime: '2024-03-10T10:00:00', timeZone: specifiedTimeZone },
+      end: { dateTime: '2024-03-10T11:00:00' }, // No timezone for end
     };
 
     await handleCreateEvent(args);
@@ -78,9 +78,9 @@ describe('handleCreateEvent', () => {
 
     const specifiedTimeZone = 'Pacific Standard Time';
     const args = {
-        subject: 'Test Event with Specific End Timezone',
-        start: { dateTime: '2024-03-10T10:00:00' }, // No timezone for start
-        end: { dateTime: '2024-03-10T11:00:00', timeZone: specifiedTimeZone },
+      subject: 'Test Event with Specific End Timezone',
+      start: { dateTime: '2024-03-10T10:00:00' }, // No timezone for start
+      end: { dateTime: '2024-03-10T11:00:00', timeZone: specifiedTimeZone },
     };
 
     await handleCreateEvent(args);
@@ -99,7 +99,9 @@ describe('handleCreateEvent', () => {
     };
 
     const result = await handleCreateEvent(args);
-    expect(result.content[0].text).toBe("Subject, start, and end times are required to create an event.");
+    expect(result.content[0].text).toBe(
+      'Subject, start, and end times are required to create an event.'
+    );
     expect(ensureAuthenticated).not.toHaveBeenCalled();
     expect(callGraphAPI).not.toHaveBeenCalled();
   });
@@ -111,7 +113,9 @@ describe('handleCreateEvent', () => {
     };
 
     const result = await handleCreateEvent(args);
-    expect(result.content[0].text).toBe("Subject, start, and end times are required to create an event.");
+    expect(result.content[0].text).toBe(
+      'Subject, start, and end times are required to create an event.'
+    );
     expect(ensureAuthenticated).not.toHaveBeenCalled();
     expect(callGraphAPI).not.toHaveBeenCalled();
   });
@@ -123,12 +127,14 @@ describe('handleCreateEvent', () => {
     };
 
     const result = await handleCreateEvent(args);
-    expect(result.content[0].text).toBe("Subject, start, and end times are required to create an event.");
+    expect(result.content[0].text).toBe(
+      'Subject, start, and end times are required to create an event.'
+    );
     expect(ensureAuthenticated).not.toHaveBeenCalled();
     expect(callGraphAPI).not.toHaveBeenCalled();
   });
 
-   test('should handle authentication error', async () => {
+  test('should handle authentication error', async () => {
     ensureAuthenticated.mockRejectedValue(new Error('Authentication required'));
     const args = {
       subject: 'Test Event',
@@ -137,21 +143,24 @@ describe('handleCreateEvent', () => {
     };
 
     const result = await handleCreateEvent(args);
-    expect(result.content[0].text).toBe("Authentication required. Please use the 'authenticate' tool first.");
+    expect(result.content[0].text).toBe(
+      "Authentication required. Please use the 'authenticate' tool first."
+    );
     expect(callGraphAPI).not.toHaveBeenCalled();
   });
 
   test('should handle Graph API call error', async () => {
     ensureAuthenticated.mockResolvedValue('dummy_access_token');
     callGraphAPI.mockRejectedValue(new Error('Graph API Error'));
-     const args = {
+    const args = {
       subject: 'Test Event',
       start: '2024-03-10T10:00:00',
       end: '2024-03-10T11:00:00',
     };
 
     const result = await handleCreateEvent(args);
-    expect(result.content[0].text).toBe("Error creating event: Graph API Error");
+    expect(result.content[0].text).toBe(
+      'Error creating event: Graph API Error'
+    );
   });
-
 });

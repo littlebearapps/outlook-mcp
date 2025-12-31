@@ -39,7 +39,7 @@ async function handleListEmailsDelta(args) {
       endpoint = `me/mailFolders/${folder}/messages/delta`;
       queryParams = {
         $select: getEmailFields('delta'),
-        $top: maxResults.toString()
+        $top: maxResults.toString(),
       };
     }
 
@@ -61,7 +61,7 @@ async function handleListEmailsDelta(args) {
     const changesSummary = {
       created: 0,
       updated: 0,
-      deleted: 0
+      deleted: 0,
     };
 
     const processedEmails = [];
@@ -72,7 +72,7 @@ async function handleListEmailsDelta(args) {
         processedEmails.push({
           id: email.id,
           removed: true,
-          reason: email['@removed'].reason || 'deleted'
+          reason: email['@removed'].reason || 'deleted',
         });
       } else if (deltaToken) {
         // With deltaToken, all non-removed items are changes
@@ -119,14 +119,17 @@ async function handleListEmailsDelta(args) {
       resultText += `| Total | ${processedEmails.length} |\n`;
 
       // Emails list (non-deleted only)
-      const activeEmails = processedEmails.filter(e => !e.removed);
+      const activeEmails = processedEmails.filter((e) => !e.removed);
       if (activeEmails.length > 0) {
         resultText += `\n### Emails\n\n`;
-        resultText += formatEmailList(activeEmails, verbosity === 'full' ? VERBOSITY.FULL : VERBOSITY.STANDARD);
+        resultText += formatEmailList(
+          activeEmails,
+          verbosity === 'full' ? VERBOSITY.FULL : VERBOSITY.STANDARD
+        );
       }
 
       // Deleted items
-      const deletedEmails = processedEmails.filter(e => e.removed);
+      const deletedEmails = processedEmails.filter((e) => e.removed);
       if (deletedEmails.length > 0) {
         resultText += `\n### Deleted Items (${deletedEmails.length})\n\n`;
         for (const del of deletedEmails.slice(0, 10)) {
@@ -151,45 +154,55 @@ async function handleListEmailsDelta(args) {
     }
 
     return {
-      content: [{
-        type: "text",
-        text: resultText
-      }],
+      content: [
+        {
+          type: 'text',
+          text: resultText,
+        },
+      ],
       _meta: {
         syncType: isInitialSync ? 'initial' : 'incremental',
         folder: folder,
         itemCount: processedEmails.length,
         hasMoreChanges: hasMoreChanges,
         changesSummary: changesSummary,
-        deltaToken: newDeltaToken
-      }
+        deltaToken: newDeltaToken,
+      },
     };
-
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     // Handle expired delta token
-    if (error.message.includes('410') || error.message.includes('resyncRequired')) {
+    if (
+      error.message.includes('410') ||
+      error.message.includes('resyncRequired')
+    ) {
       return {
-        content: [{
-          type: "text",
-          text: `## Delta Token Expired\n\nThe provided delta token has expired. Please start a new initial sync by calling without a deltaToken.\n\n**Error:** ${error.message}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `## Delta Token Expired\n\nThe provided delta token has expired. Please start a new initial sync by calling without a deltaToken.\n\n**Error:** ${error.message}`,
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Delta sync failed: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Delta sync failed: ${error.message}`,
+        },
+      ],
     };
   }
 }

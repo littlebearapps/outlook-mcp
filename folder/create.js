@@ -13,44 +13,56 @@ const { getFolderIdByName } = require('../email/folder-utils');
 async function handleCreateFolder(args) {
   const folderName = args.name;
   const parentFolder = args.parentFolder || '';
-  
+
   if (!folderName) {
     return {
-      content: [{ 
-        type: "text", 
-        text: "Folder name is required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Folder name is required.',
+        },
+      ],
     };
   }
-  
+
   try {
     // Get access token
     const accessToken = await ensureAuthenticated();
-    
+
     // Create folder with appropriate parent
-    const result = await createMailFolder(accessToken, folderName, parentFolder);
-    
+    const result = await createMailFolder(
+      accessToken,
+      folderName,
+      parentFolder
+    );
+
     return {
-      content: [{ 
-        type: "text", 
-        text: result.message
-      }]
+      content: [
+        {
+          type: 'text',
+          text: result.message,
+        },
+      ],
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{ 
-          type: "text", 
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
-    
+
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error creating folder: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error creating folder: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -69,10 +81,10 @@ async function createMailFolder(accessToken, folderName, parentFolderName) {
     if (existingFolder) {
       return {
         success: false,
-        message: `A folder named "${folderName}" already exists.`
+        message: `A folder named "${folderName}" already exists.`,
       };
     }
-    
+
     // If parent folder specified, find its ID
     let endpoint = 'me/mailFolders';
     if (parentFolderName) {
@@ -80,39 +92,40 @@ async function createMailFolder(accessToken, folderName, parentFolderName) {
       if (!parentId) {
         return {
           success: false,
-          message: `Parent folder "${parentFolderName}" not found. Please specify a valid parent folder or leave it blank to create at the root level.`
+          message: `Parent folder "${parentFolderName}" not found. Please specify a valid parent folder or leave it blank to create at the root level.`,
         };
       }
-      
+
       endpoint = `me/mailFolders/${parentId}/childFolders`;
     }
-    
+
     // Create the folder
     const folderData = {
-      displayName: folderName
+      displayName: folderName,
     };
-    
+
     const response = await callGraphAPI(
       accessToken,
       'POST',
       endpoint,
       folderData
     );
-    
+
     if (response && response.id) {
-      const locationInfo = parentFolderName 
-        ? `inside "${parentFolderName}"` 
-        : "at the root level";
-        
+      const locationInfo = parentFolderName
+        ? `inside "${parentFolderName}"`
+        : 'at the root level';
+
       return {
         success: true,
         message: `Successfully created folder "${folderName}" ${locationInfo}.`,
-        folderId: response.id
+        folderId: response.id,
       };
     } else {
       return {
         success: false,
-        message: "Failed to create folder. The server didn't return a folder ID."
+        message:
+          "Failed to create folder. The server didn't return a folder ID.",
       };
     }
   } catch (error) {

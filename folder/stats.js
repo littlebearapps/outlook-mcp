@@ -27,10 +27,12 @@ async function handleGetFolderStats(args) {
 
     if (!folderId) {
       return {
-        content: [{
-          type: "text",
-          text: `Folder "${folderName}" not found.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Folder "${folderName}" not found.`,
+          },
+        ],
       };
     }
 
@@ -42,7 +44,8 @@ async function handleGetFolderStats(args) {
       null,
       {
         // Note: sizeInBytes is NOT available on mailFolder resource type
-        $select: 'id,displayName,parentFolderId,childFolderCount,totalItemCount,unreadItemCount,isHidden'
+        $select:
+          'id,displayName,parentFolderId,childFolderCount,totalItemCount,unreadItemCount,isHidden',
       }
     );
 
@@ -56,28 +59,33 @@ async function handleGetFolderStats(args) {
     const formatted = formatFolderStats(folder, dateRange, verbosity);
 
     return {
-      content: [{
-        type: "text",
-        text: formatted.text
-      }],
-      _meta: formatted.meta
+      content: [
+        {
+          type: 'text',
+          text: formatted.text,
+        },
+      ],
+      _meta: formatted.meta,
     };
-
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error getting folder stats: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error getting folder stats: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -90,20 +98,20 @@ async function handleGetFolderStats(args) {
  */
 async function resolveFolderName(accessToken, folderName) {
   const wellKnownFolders = {
-    'inbox': 'inbox',
-    'sent': 'sentitems',
-    'sentitems': 'sentitems',
+    inbox: 'inbox',
+    sent: 'sentitems',
+    sentitems: 'sentitems',
     'sent items': 'sentitems',
-    'drafts': 'drafts',
-    'deleted': 'deleteditems',
-    'deleteditems': 'deleteditems',
+    drafts: 'drafts',
+    deleted: 'deleteditems',
+    deleteditems: 'deleteditems',
     'deleted items': 'deleteditems',
-    'junk': 'junkemail',
-    'junkemail': 'junkemail',
+    junk: 'junkemail',
+    junkemail: 'junkemail',
     'junk email': 'junkemail',
-    'spam': 'junkemail',
-    'archive': 'archive',
-    'outbox': 'outbox'
+    spam: 'junkemail',
+    archive: 'archive',
+    outbox: 'outbox',
   };
 
   const normalised = folderName.toLowerCase().trim();
@@ -133,7 +141,7 @@ async function resolveFolderName(accessToken, folderName) {
       null,
       {
         $filter: `displayName eq '${folderName}'`,
-        $select: 'id'
+        $select: 'id',
       }
     );
 
@@ -164,7 +172,7 @@ async function getEmailDateRange(accessToken, folderId) {
       {
         $select: 'receivedDateTime',
         $orderby: 'receivedDateTime desc',
-        $top: 1
+        $top: 1,
       }
     );
 
@@ -177,7 +185,7 @@ async function getEmailDateRange(accessToken, folderId) {
       {
         $select: 'receivedDateTime',
         $orderby: 'receivedDateTime asc',
-        $top: 1
+        $top: 1,
       }
     );
 
@@ -217,14 +225,14 @@ function formatFolderStats(folder, dateRange, verbosity) {
     unreadItems,
     pageSize,
     totalPages,
-    verbosity
+    verbosity,
   };
 
   // Minimal: Just key numbers
   if (verbosity === VERBOSITY.MINIMAL) {
     return {
       text: `${folder.displayName}: ${totalItems} items (${unreadItems} unread)`,
-      meta
+      meta,
     };
   }
 
@@ -278,7 +286,9 @@ function formatFolderStats(folder, dateRange, verbosity) {
   if (dateRange) {
     const newestDate = new Date(dateRange.newest);
     const oldestDate = new Date(dateRange.oldest);
-    const daysDiff = Math.ceil((newestDate - oldestDate) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.ceil(
+      (newestDate - oldestDate) / (1000 * 60 * 60 * 24)
+    );
 
     text += `\n## Date Range\n\n`;
     text += `| Boundary | Date |\n`;

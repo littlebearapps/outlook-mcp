@@ -14,10 +14,12 @@ async function handleDeleteEvent(args) {
 
   if (!eventId) {
     return {
-      content: [{
-        type: "text",
-        text: "Event ID is required to delete an event."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Event ID is required to delete an event.',
+        },
+      ],
     };
   }
 
@@ -32,26 +34,32 @@ async function handleDeleteEvent(args) {
     await callGraphAPI(accessToken, 'DELETE', endpoint);
 
     return {
-      content: [{
-        type: "text",
-        text: `Event with ID ${eventId} has been successfully deleted.`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Event with ID ${eventId} has been successfully deleted.`,
+        },
+      ],
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error deleting event: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error deleting event: ${error.message}`,
+        },
+      ],
     };
   }
 }

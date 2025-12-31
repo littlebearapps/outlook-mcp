@@ -14,7 +14,13 @@ const mockData = require('./mock-data');
  * @param {object} queryParams - Query parameters
  * @returns {Promise<object>} - The API response
  */
-async function callGraphAPI(accessToken, method, path, data = null, queryParams = {}) {
+async function callGraphAPI(
+  accessToken,
+  method,
+  path,
+  data = null,
+  queryParams = {}
+) {
   // For test tokens, we'll simulate the API call
   if (config.USE_TEST_MODE && accessToken.startsWith('test_access_token_')) {
     console.error(`TEST MODE: Simulating ${method} ${path} API call`);
@@ -23,7 +29,7 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
 
   try {
     console.error(`Making real API call: ${method} ${path}`);
-    
+
     // Check if path already contains the full URL (from nextLink)
     let finalUrl;
     if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -33,10 +39,11 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
     } else {
       // Build URL from path and queryParams
       // Encode path segments properly
-      const encodedPath = path.split('/')
-        .map(segment => encodeURIComponent(segment))
+      const encodedPath = path
+        .split('/')
+        .map((segment) => encodeURIComponent(segment))
         .join('/');
-      
+
       // Build query string from parameters with special handling for OData filters
       let queryString = '';
       if (Object.keys(queryParams).length > 0) {
@@ -45,15 +52,15 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
         if (filter) {
           delete queryParams.$filter; // Remove from regular params
         }
-        
+
         // Build query string with proper encoding for regular params
         const params = new URLSearchParams();
         for (const [key, value] of Object.entries(queryParams)) {
           params.append(key, value);
         }
-        
+
         queryString = params.toString();
-        
+
         // Add filter parameter separately with proper encoding
         if (filter) {
           if (queryString) {
@@ -62,34 +69,34 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
             queryString = `$filter=${encodeURIComponent(filter)}`;
           }
         }
-        
+
         if (queryString) {
           queryString = '?' + queryString;
         }
-        
+
         console.error(`Query string: ${queryString}`);
       }
-      
+
       finalUrl = `${config.GRAPH_API_ENDPOINT}${encodedPath}${queryString}`;
       console.error(`Full URL: ${finalUrl}`);
     }
-    
+
     return new Promise((resolve, reject) => {
       const options = {
         method: method,
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
       };
-      
+
       const req = https.request(finalUrl, options, (res) => {
         let responseData = '';
-        
+
         res.on('data', (chunk) => {
           responseData += chunk;
         });
-        
+
         res.on('end', () => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             try {
@@ -103,19 +110,26 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
             // Token expired or invalid
             reject(new Error('UNAUTHORIZED'));
           } else {
-            reject(new Error(`API call failed with status ${res.statusCode}: ${responseData}`));
+            reject(
+              new Error(
+                `API call failed with status ${res.statusCode}: ${responseData}`
+              )
+            );
           }
         });
       });
-      
+
       req.on('error', (error) => {
         reject(new Error(`Network error during API call: ${error.message}`));
       });
-      
-      if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+
+      if (
+        data &&
+        (method === 'POST' || method === 'PATCH' || method === 'PUT')
+      ) {
         req.write(JSON.stringify(data));
       }
-      
+
       req.end();
     });
   } catch (error) {
@@ -133,7 +147,13 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
  * @param {number} maxCount - Maximum number of items to retrieve (0 = all)
  * @returns {Promise<object>} - Combined API response with all items
  */
-async function callGraphAPIPaginated(accessToken, method, path, queryParams = {}, maxCount = 0) {
+async function callGraphAPIPaginated(
+  accessToken,
+  method,
+  path,
+  queryParams = {},
+  maxCount = 0
+) {
   if (method !== 'GET') {
     throw new Error('Pagination only supports GET requests');
   }
@@ -146,12 +166,20 @@ async function callGraphAPIPaginated(accessToken, method, path, queryParams = {}
   try {
     do {
       // Make API call
-      const response = await callGraphAPI(accessToken, method, currentUrl, null, currentParams);
-      
+      const response = await callGraphAPI(
+        accessToken,
+        method,
+        currentUrl,
+        null,
+        currentParams
+      );
+
       // Add items from this page
       if (response.value && Array.isArray(response.value)) {
         allItems.push(...response.value);
-        console.error(`Pagination: Retrieved ${response.value.length} items, total so far: ${allItems.length}`);
+        console.error(
+          `Pagination: Retrieved ${response.value.length} items, total so far: ${allItems.length}`
+        );
       }
 
       // Check if we've reached the desired count
@@ -162,23 +190,27 @@ async function callGraphAPIPaginated(accessToken, method, path, queryParams = {}
 
       // Get next page URL
       nextLink = response['@odata.nextLink'];
-      
+
       if (nextLink) {
         // Pass the full nextLink URL directly to callGraphAPI
         currentUrl = nextLink;
         currentParams = {}; // nextLink already contains all params
-        console.error(`Pagination: Following nextLink, ${allItems.length} items so far`);
+        console.error(
+          `Pagination: Following nextLink, ${allItems.length} items so far`
+        );
       }
     } while (nextLink);
 
     // Trim to exact count if needed
     const finalItems = maxCount > 0 ? allItems.slice(0, maxCount) : allItems;
 
-    console.error(`Pagination complete: Retrieved ${finalItems.length} total items`);
-    
+    console.error(
+      `Pagination complete: Retrieved ${finalItems.length} total items`
+    );
+
     return {
       value: finalItems,
-      '@odata.count': finalItems.length
+      '@odata.count': finalItems.length,
     };
   } catch (error) {
     console.error('Error during pagination:', error);
@@ -196,8 +228,9 @@ async function callGraphAPIRaw(accessToken, emailId) {
   // Test mode: return mock MIME content
   if (config.USE_TEST_MODE && accessToken.startsWith('test_access_token_')) {
     console.error(`TEST MODE: Simulating MIME export for ${emailId}`);
-    return mockData.getMockMimeContent ? mockData.getMockMimeContent(emailId) :
-      `MIME-Version: 1.0\nContent-Type: text/plain\n\nTest email content for ${emailId}`;
+    return mockData.getMockMimeContent
+      ? mockData.getMockMimeContent(emailId)
+      : `MIME-Version: 1.0\nContent-Type: text/plain\n\nTest email content for ${emailId}`;
   }
 
   return new Promise((resolve, reject) => {
@@ -209,9 +242,9 @@ async function callGraphAPIRaw(accessToken, emailId) {
     const options = {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'message/rfc822'  // Request MIME format
-      }
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'message/rfc822', // Request MIME format
+      },
     };
 
     const req = https.request(finalUrl, options, (res) => {
@@ -231,7 +264,11 @@ async function callGraphAPIRaw(accessToken, emailId) {
         } else if (res.statusCode === 401) {
           reject(new Error('UNAUTHORIZED'));
         } else {
-          reject(new Error(`MIME export failed with status ${res.statusCode}: ${responseData.substring(0, 200)}`));
+          reject(
+            new Error(
+              `MIME export failed with status ${res.statusCode}: ${responseData.substring(0, 200)}`
+            )
+          );
         }
       });
     });
@@ -247,5 +284,5 @@ async function callGraphAPIRaw(accessToken, emailId) {
 module.exports = {
   callGraphAPI,
   callGraphAPIPaginated,
-  callGraphAPIRaw
+  callGraphAPIRaw,
 };

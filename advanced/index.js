@@ -10,8 +10,8 @@ const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 const { EMAIL_FIELDS } = require('../utils/field-presets');
 
-// Flag status values
-const FLAG_STATUS = ['notFlagged', 'complete', 'flagged'];
+// Flag status values (used for validation in flag tools)
+const _FLAG_STATUS = ['notFlagged', 'complete', 'flagged'];
 
 /**
  * Format an email for display (simplified)
@@ -21,21 +21,23 @@ function formatEmail(email, verbosity = 'standard') {
     return {
       id: email.id,
       subject: email.subject,
-      from: email.from?.emailAddress?.address
+      from: email.from?.emailAddress?.address,
     };
   }
 
   return {
     id: email.id,
     subject: email.subject,
-    from: email.from?.emailAddress ? {
-      name: email.from.emailAddress.name,
-      address: email.from.emailAddress.address
-    } : null,
+    from: email.from?.emailAddress
+      ? {
+          name: email.from.emailAddress.name,
+          address: email.from.emailAddress.address,
+        }
+      : null,
     receivedDateTime: email.receivedDateTime,
     isRead: email.isRead,
     hasAttachments: email.hasAttachments,
-    flag: email.flag
+    flag: email.flag,
   };
 }
 
@@ -48,10 +50,12 @@ async function handleAccessSharedMailbox(args) {
 
   if (!sharedMailbox) {
     return {
-      content: [{
-        type: "text",
-        text: "Shared mailbox email address is required (e.g., 'shared@company.com')."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: "Shared mailbox email address is required (e.g., 'shared@company.com').",
+        },
+      ],
     };
   }
 
@@ -65,9 +69,9 @@ async function handleAccessSharedMailbox(args) {
     // Build endpoint for shared mailbox
     const endpoint = `/users/${encodeURIComponent(sharedMailbox)}/mailFolders/${mailFolder}/messages`;
     const params = new URLSearchParams({
-      '$top': pageSize.toString(),
-      '$orderby': 'receivedDateTime desc',
-      '$select': EMAIL_FIELDS[verbosity === 'full' ? 'full' : 'list'].join(',')
+      $top: pageSize.toString(),
+      $orderby: 'receivedDateTime desc',
+      $select: EMAIL_FIELDS[verbosity === 'full' ? 'full' : 'list'].join(','),
     });
 
     const response = await callGraphAPI(
@@ -80,10 +84,12 @@ async function handleAccessSharedMailbox(args) {
 
     if (messages.length === 0) {
       return {
-        content: [{
-          type: "text",
-          text: `No emails found in ${sharedMailbox}/${mailFolder}.\n\nNote: Make sure you have access to this shared mailbox and the Mail.Read.Shared permission is granted.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `No emails found in ${sharedMailbox}/${mailFolder}.\n\nNote: Make sure you have access to this shared mailbox and the Mail.Read.Shared permission is granted.`,
+          },
+        ],
       };
     }
 
@@ -101,9 +107,14 @@ async function handleAccessSharedMailbox(args) {
       output.push('|---|---------|------|------|------|');
       messages.forEach((msg, i) => {
         const date = new Date(msg.receivedDateTime).toLocaleDateString();
-        const from = msg.from?.emailAddress?.name || msg.from?.emailAddress?.address || 'Unknown';
+        const from =
+          msg.from?.emailAddress?.name ||
+          msg.from?.emailAddress?.address ||
+          'Unknown';
         const read = msg.isRead ? '✓' : '○';
-        output.push(`| ${i + 1} | ${msg.subject?.substring(0, 40)}${msg.subject?.length > 40 ? '...' : ''} | ${from.substring(0, 20)} | ${date} | ${read} |`);
+        output.push(
+          `| ${i + 1} | ${msg.subject?.substring(0, 40)}${msg.subject?.length > 40 ? '...' : ''} | ${from.substring(0, 20)} | ${date} | ${read} |`
+        );
       });
     }
 
@@ -115,50 +126,63 @@ async function handleAccessSharedMailbox(args) {
     }
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
         sharedMailbox,
         folder: mailFolder,
         count: messages.length,
-        messages: messages.map(m => formatEmail(m, verbosity))
-      }
+        messages: messages.map((m) => formatEmail(m, verbosity)),
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
-    if (error.message.includes('Access is denied') || error.message.includes('403')) {
+    if (
+      error.message.includes('Access is denied') ||
+      error.message.includes('403')
+    ) {
       return {
-        content: [{
-          type: "text",
-          text: `Access denied to shared mailbox "${sharedMailbox}".\n\n**Possible causes:**\n- You don't have access to this shared mailbox\n- The Mail.Read.Shared permission is not granted\n- The shared mailbox address is incorrect`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Access denied to shared mailbox "${sharedMailbox}".\n\n**Possible causes:**\n- You don't have access to this shared mailbox\n- The Mail.Read.Shared permission is not granted\n- The shared mailbox address is incorrect`,
+          },
+        ],
       };
     }
 
     if (error.message.includes('not found') || error.message.includes('404')) {
       return {
-        content: [{
-          type: "text",
-          text: `Shared mailbox "${sharedMailbox}" not found. Please verify the email address.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Shared mailbox "${sharedMailbox}" not found. Please verify the email address.`,
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error accessing shared mailbox: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error accessing shared mailbox: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -167,17 +191,25 @@ async function handleAccessSharedMailbox(args) {
  * Set message flag handler
  */
 async function handleSetMessageFlag(args) {
-  const { messageId, messageIds, dueDateTime, startDateTime, reminderDateTime } = args;
+  const {
+    messageId,
+    messageIds,
+    dueDateTime,
+    startDateTime,
+    reminderDateTime: _reminderDateTime,
+  } = args;
 
   // Support single ID or array
   const ids = messageIds || (messageId ? [messageId] : []);
 
   if (ids.length === 0) {
     return {
-      content: [{
-        type: "text",
-        text: "Message ID (messageId) or IDs (messageIds) required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Message ID (messageId) or IDs (messageIds) required.',
+        },
+      ],
     };
   }
 
@@ -186,20 +218,20 @@ async function handleSetMessageFlag(args) {
 
     // Build flag object
     const flag = {
-      flagStatus: 'flagged'
+      flagStatus: 'flagged',
     };
 
     if (dueDateTime) {
       flag.dueDateTime = {
         dateTime: new Date(dueDateTime).toISOString(),
-        timeZone: 'UTC'
+        timeZone: 'UTC',
       };
     }
 
     if (startDateTime) {
       flag.startDateTime = {
         dateTime: new Date(startDateTime).toISOString(),
-        timeZone: 'UTC'
+        timeZone: 'UTC',
       };
     }
 
@@ -209,12 +241,9 @@ async function handleSetMessageFlag(args) {
 
     for (const id of ids) {
       try {
-        await callGraphAPI(
-          accessToken,
-          `/me/messages/${id}`,
-          'PATCH',
-          { flag }
-        );
+        await callGraphAPI(accessToken, `/me/messages/${id}`, 'PATCH', {
+          flag,
+        });
         results.push({ id, success: true });
       } catch (err) {
         errors.push({ id, error: err.message });
@@ -236,37 +265,43 @@ async function handleSetMessageFlag(args) {
 
     if (errors.length > 0) {
       output.push(`\n⚠️ ${errors.length} error(s):`);
-      errors.forEach(e => {
+      errors.forEach((e) => {
         output.push(`- ${e.id.substring(0, 20)}...: ${e.error}`);
       });
     }
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
         successful: results.length,
         failed: errors.length,
         results,
-        errors
-      }
+        errors,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error setting message flag: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error setting message flag: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -282,10 +317,12 @@ async function handleClearMessageFlag(args) {
 
   if (ids.length === 0) {
     return {
-      content: [{
-        type: "text",
-        text: "Message ID (messageId) or IDs (messageIds) required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Message ID (messageId) or IDs (messageIds) required.',
+        },
+      ],
     };
   }
 
@@ -294,14 +331,14 @@ async function handleClearMessageFlag(args) {
 
     // Determine flag status
     const flag = {
-      flagStatus: markComplete ? 'complete' : 'notFlagged'
+      flagStatus: markComplete ? 'complete' : 'notFlagged',
     };
 
     // Clear completion date if marking complete
     if (markComplete) {
       flag.completedDateTime = {
         dateTime: new Date().toISOString(),
-        timeZone: 'UTC'
+        timeZone: 'UTC',
       };
     }
 
@@ -311,12 +348,9 @@ async function handleClearMessageFlag(args) {
 
     for (const id of ids) {
       try {
-        await callGraphAPI(
-          accessToken,
-          `/me/messages/${id}`,
-          'PATCH',
-          { flag }
-        );
+        await callGraphAPI(accessToken, `/me/messages/${id}`, 'PATCH', {
+          flag,
+        });
         results.push({ id, success: true });
       } catch (err) {
         errors.push({ id, error: err.message });
@@ -332,38 +366,44 @@ async function handleClearMessageFlag(args) {
 
     if (errors.length > 0) {
       output.push(`\n⚠️ ${errors.length} error(s):`);
-      errors.forEach(e => {
+      errors.forEach((e) => {
         output.push(`- ${e.id.substring(0, 20)}...: ${e.error}`);
       });
     }
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
         action: markComplete ? 'complete' : 'cleared',
         successful: results.length,
         failed: errors.length,
         results,
-        errors
-      }
+        errors,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error clearing message flag: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error clearing message flag: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -400,10 +440,12 @@ async function handleFindMeetingRooms(args) {
         rooms = roomsResponse.value || [];
       } catch (findRoomsError) {
         return {
-          content: [{
-            type: "text",
-            text: `Unable to find meeting rooms.\n\n**Note**: This feature requires:\n- Places.Read.All permission\n- Meeting rooms configured in your organization\n\nError: ${findRoomsError.message}`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `Unable to find meeting rooms.\n\n**Note**: This feature requires:\n- Places.Read.All permission\n- Meeting rooms configured in your organization\n\nError: ${findRoomsError.message}`,
+            },
+          ],
         };
       }
     }
@@ -411,34 +453,35 @@ async function handleFindMeetingRooms(args) {
     // Apply filters
     if (query) {
       const q = query.toLowerCase();
-      rooms = rooms.filter(r =>
-        r.displayName?.toLowerCase().includes(q) ||
-        r.emailAddress?.toLowerCase().includes(q) ||
-        r.nickname?.toLowerCase().includes(q)
+      rooms = rooms.filter(
+        (r) =>
+          r.displayName?.toLowerCase().includes(q) ||
+          r.emailAddress?.toLowerCase().includes(q) ||
+          r.nickname?.toLowerCase().includes(q)
       );
     }
 
     if (building) {
       const b = building.toLowerCase();
-      rooms = rooms.filter(r =>
-        r.building?.toLowerCase().includes(b)
-      );
+      rooms = rooms.filter((r) => r.building?.toLowerCase().includes(b));
     }
 
     if (floor !== undefined) {
-      rooms = rooms.filter(r => r.floorNumber === floor);
+      rooms = rooms.filter((r) => r.floorNumber === floor);
     }
 
     if (capacity) {
-      rooms = rooms.filter(r => r.capacity >= capacity);
+      rooms = rooms.filter((r) => r.capacity >= capacity);
     }
 
     if (rooms.length === 0) {
       return {
-        content: [{
-          type: "text",
-          text: "No meeting rooms found matching your criteria.\n\nTry broadening your search or check if rooms are configured in your organization."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'No meeting rooms found matching your criteria.\n\nTry broadening your search or check if rooms are configured in your organization.',
+          },
+        ],
       };
     }
 
@@ -446,11 +489,13 @@ async function handleFindMeetingRooms(args) {
     output.push(`# Meeting Rooms (${rooms.length})\n`);
 
     if (verbosity === 'minimal') {
-      rooms.forEach(room => {
-        output.push(`- ${room.displayName || room.name} (${room.emailAddress})`);
+      rooms.forEach((room) => {
+        output.push(
+          `- ${room.displayName || room.name} (${room.emailAddress})`
+        );
       });
     } else {
-      rooms.forEach(room => {
+      rooms.forEach((room) => {
         output.push(`## ${room.displayName || room.name}`);
         output.push(`**Email**: ${room.emailAddress || 'N/A'}`);
 
@@ -478,7 +523,9 @@ async function handleFindMeetingRooms(args) {
             output.push(`**Display**: ${room.displayDeviceName}`);
           }
           if (room.isWheelChairAccessible !== undefined) {
-            output.push(`**Wheelchair Accessible**: ${room.isWheelChairAccessible ? 'Yes' : 'No'}`);
+            output.push(
+              `**Wheelchair Accessible**: ${room.isWheelChairAccessible ? 'Yes' : 'No'}`
+            );
           }
         }
 
@@ -487,29 +534,35 @@ async function handleFindMeetingRooms(args) {
     }
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
         count: rooms.length,
-        rooms: rooms
-      }
+        rooms: rooms,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error finding meeting rooms: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error finding meeting rooms: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -517,117 +570,117 @@ async function handleFindMeetingRooms(args) {
 // Tool definitions
 const advancedTools = [
   {
-    name: "access-shared-mailbox",
-    description: "Read emails from a shared mailbox you have access to",
+    name: 'access-shared-mailbox',
+    description: 'Read emails from a shared mailbox you have access to',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         sharedMailbox: {
-          type: "string",
-          description: "Email address of the shared mailbox (required)"
+          type: 'string',
+          description: 'Email address of the shared mailbox (required)',
         },
         folder: {
-          type: "string",
-          description: "Folder to read from (default: inbox)"
+          type: 'string',
+          description: 'Folder to read from (default: inbox)',
         },
         count: {
-          type: "number",
-          description: "Number of emails to retrieve (default: 25, max: 50)"
+          type: 'number',
+          description: 'Number of emails to retrieve (default: 25, max: 50)',
         },
         outputVerbosity: {
-          type: "string",
-          enum: ["minimal", "standard", "full"],
-          description: "Output detail level (default: standard)"
-        }
+          type: 'string',
+          enum: ['minimal', 'standard', 'full'],
+          description: 'Output detail level (default: standard)',
+        },
       },
-      required: ["sharedMailbox"]
+      required: ['sharedMailbox'],
     },
-    handler: handleAccessSharedMailbox
+    handler: handleAccessSharedMailbox,
   },
   {
-    name: "set-message-flag",
-    description: "Flag email(s) for follow-up with optional due date",
+    name: 'set-message-flag',
+    description: 'Flag email(s) for follow-up with optional due date',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         messageId: {
-          type: "string",
-          description: "Single message ID to flag"
+          type: 'string',
+          description: 'Single message ID to flag',
         },
         messageIds: {
-          type: "array",
-          items: { type: "string" },
-          description: "Array of message IDs to flag (batch operation)"
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of message IDs to flag (batch operation)',
         },
         dueDateTime: {
-          type: "string",
-          description: "Due date/time for follow-up (ISO 8601 format)"
+          type: 'string',
+          description: 'Due date/time for follow-up (ISO 8601 format)',
         },
         startDateTime: {
-          type: "string",
-          description: "Start date/time for follow-up (ISO 8601 format)"
-        }
+          type: 'string',
+          description: 'Start date/time for follow-up (ISO 8601 format)',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleSetMessageFlag
+    handler: handleSetMessageFlag,
   },
   {
-    name: "clear-message-flag",
-    description: "Clear follow-up flag from email(s) or mark as complete",
+    name: 'clear-message-flag',
+    description: 'Clear follow-up flag from email(s) or mark as complete',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         messageId: {
-          type: "string",
-          description: "Single message ID"
+          type: 'string',
+          description: 'Single message ID',
         },
         messageIds: {
-          type: "array",
-          items: { type: "string" },
-          description: "Array of message IDs (batch operation)"
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of message IDs (batch operation)',
         },
         markComplete: {
-          type: "boolean",
-          description: "Mark as complete instead of clearing (default: false)"
-        }
+          type: 'boolean',
+          description: 'Mark as complete instead of clearing (default: false)',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleClearMessageFlag
+    handler: handleClearMessageFlag,
   },
   {
-    name: "find-meeting-rooms",
-    description: "Search for meeting rooms in your organization",
+    name: 'find-meeting-rooms',
+    description: 'Search for meeting rooms in your organization',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         query: {
-          type: "string",
-          description: "Search query (room name, email)"
+          type: 'string',
+          description: 'Search query (room name, email)',
         },
         building: {
-          type: "string",
-          description: "Filter by building name"
+          type: 'string',
+          description: 'Filter by building name',
         },
         floor: {
-          type: "number",
-          description: "Filter by floor number"
+          type: 'number',
+          description: 'Filter by floor number',
         },
         capacity: {
-          type: "number",
-          description: "Minimum capacity required"
+          type: 'number',
+          description: 'Minimum capacity required',
         },
         outputVerbosity: {
-          type: "string",
-          enum: ["minimal", "standard", "full"],
-          description: "Output detail level (default: standard)"
-        }
+          type: 'string',
+          enum: ['minimal', 'standard', 'full'],
+          description: 'Output detail level (default: standard)',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleFindMeetingRooms
-  }
+    handler: handleFindMeetingRooms,
+  },
 ];
 
 module.exports = {
@@ -635,5 +688,5 @@ module.exports = {
   handleAccessSharedMailbox,
   handleSetMessageFlag,
   handleClearMessageFlag,
-  handleFindMeetingRooms
+  handleFindMeetingRooms,
 };

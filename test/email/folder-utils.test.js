@@ -1,7 +1,7 @@
 const {
   WELL_KNOWN_FOLDERS,
   resolveFolderPath,
-  getFolderIdByName
+  getFolderIdByName,
 } = require('../../email/folder-utils');
 const { callGraphAPI } = require('../../utils/graph-api');
 
@@ -63,7 +63,7 @@ describe('resolveFolderPath', () => {
       const customFolderName = 'MyCustomFolder';
 
       callGraphAPI.mockResolvedValueOnce({
-        value: [{ id: customFolderId, displayName: customFolderName }]
+        value: [{ id: customFolderId, displayName: customFolderName }],
       });
 
       const result = await resolveFolderPath(mockAccessToken, customFolderName);
@@ -89,8 +89,8 @@ describe('resolveFolderPath', () => {
       callGraphAPI.mockResolvedValueOnce({
         value: [
           { id: 'other-id', displayName: 'OtherFolder' },
-          { id: customFolderId, displayName: 'projectalpha' }
-        ]
+          { id: customFolderId, displayName: 'projectalpha' },
+        ],
       });
 
       const result = await resolveFolderPath(mockAccessToken, customFolderName);
@@ -109,11 +109,14 @@ describe('resolveFolderPath', () => {
       callGraphAPI.mockResolvedValueOnce({
         value: [
           { id: 'id1', displayName: 'Folder1' },
-          { id: 'id2', displayName: 'Folder2' }
-        ]
+          { id: 'id2', displayName: 'Folder2' },
+        ],
       });
 
-      const result = await resolveFolderPath(mockAccessToken, nonExistentFolder);
+      const result = await resolveFolderPath(
+        mockAccessToken,
+        nonExistentFolder
+      );
 
       expect(result).toBe(WELL_KNOWN_FOLDERS['inbox']);
       expect(callGraphAPI).toHaveBeenCalledTimes(2);
@@ -149,7 +152,7 @@ describe('getFolderIdByName', () => {
     const folderName = 'TestFolder';
 
     callGraphAPI.mockResolvedValueOnce({
-      value: [{ id: folderId, displayName: folderName }]
+      value: [{ id: folderId, displayName: folderName }],
     });
 
     const result = await getFolderIdByName(mockAccessToken, folderName);
@@ -173,9 +176,7 @@ describe('getFolderIdByName', () => {
 
     // Second call returns folders with case-insensitive match
     callGraphAPI.mockResolvedValueOnce({
-      value: [
-        { id: folderId, displayName: 'testfolder' }
-      ]
+      value: [{ id: folderId, displayName: 'testfolder' }],
     });
 
     const result = await getFolderIdByName(mockAccessToken, folderName);
@@ -192,9 +193,7 @@ describe('getFolderIdByName', () => {
 
     // Second call returns folders without a match
     callGraphAPI.mockResolvedValueOnce({
-      value: [
-        { id: 'id1', displayName: 'OtherFolder' }
-      ]
+      value: [{ id: 'id1', displayName: 'OtherFolder' }],
     });
 
     const result = await getFolderIdByName(mockAccessToken, folderName);

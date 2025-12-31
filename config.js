@@ -7,16 +7,22 @@ const path = require('path');
 const os = require('os');
 
 // Import new utility modules
-const { FIELD_PRESETS, FOLDER_FIELDS, getEmailFields, getFolderFields } = require('./utils/field-presets');
+const {
+  FIELD_PRESETS,
+  FOLDER_FIELDS,
+  getEmailFields,
+  getFolderFields,
+} = require('./utils/field-presets');
 const { VERBOSITY, DEFAULT_LIMITS } = require('./utils/response-formatter');
 
 // Ensure we have a home directory path even if process.env.HOME is undefined
-const homeDir = process.env.HOME || process.env.USERPROFILE || os.homedir() || '/tmp';
+const homeDir =
+  process.env.HOME || process.env.USERPROFILE || os.homedir() || '/tmp';
 
 module.exports = {
   // Server information
-  SERVER_NAME: "outlook-assistant",
-  SERVER_VERSION: "1.1.0",  // Bumped for token efficiency enhancements
+  SERVER_NAME: 'outlook-assistant',
+  SERVER_VERSION: '1.1.0', // Bumped for token efficiency enhancements
 
   // Test mode setting
   USE_TEST_MODE: process.env.USE_TEST_MODE === 'true',
@@ -26,16 +32,24 @@ module.exports = {
     clientId: process.env.OUTLOOK_CLIENT_ID || '',
     clientSecret: process.env.OUTLOOK_CLIENT_SECRET || '',
     redirectUri: 'http://localhost:3333/auth/callback',
-    scopes: ['Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'User.Read', 'Calendars.Read', 'Calendars.ReadWrite'],
+    scopes: [
+      'Mail.Read',
+      'Mail.ReadWrite',
+      'Mail.Send',
+      'User.Read',
+      'Calendars.Read',
+      'Calendars.ReadWrite',
+    ],
     tokenStorePath: path.join(homeDir, '.outlook-mcp-tokens.json'),
-    authServerUrl: 'http://localhost:3333'
+    authServerUrl: 'http://localhost:3333',
   },
 
   // Microsoft Graph API
   GRAPH_API_ENDPOINT: 'https://graph.microsoft.com/v1.0/',
 
   // Calendar constants
-  CALENDAR_SELECT_FIELDS: 'id,subject,bodyPreview,start,end,location,organizer,attendees,isAllDay,isCancelled',
+  CALENDAR_SELECT_FIELDS:
+    'id,subject,bodyPreview,start,end,location,organizer,attendees,isAllDay,isCancelled',
 
   // Email field presets (use getEmailFields() for dynamic selection)
   FIELD_PRESETS,
@@ -59,11 +73,11 @@ module.exports = {
 
   // Pagination (updated to use DEFAULT_LIMITS)
   DEFAULT_PAGE_SIZE: DEFAULT_LIMITS.listEmails,
-  MAX_RESULT_COUNT: 100,  // Increased for batch operations
+  MAX_RESULT_COUNT: 100, // Increased for batch operations
 
   // Search defaults (reduced for token efficiency)
   DEFAULT_SEARCH_RESULTS: DEFAULT_LIMITS.searchEmails,
 
   // Timezone
-  DEFAULT_TIMEZONE: "Australia/Melbourne",  // Updated for Nathan's timezone
+  DEFAULT_TIMEZONE: 'Australia/Melbourne', // Updated for Nathan's timezone
 };

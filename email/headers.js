@@ -33,7 +33,7 @@ const IMPORTANT_HEADERS = [
   // Custom headers
   'X-Mailer',
   'X-Originating-IP',
-  'X-Priority'
+  'X-Priority',
 ];
 
 /**
@@ -54,25 +54,40 @@ function formatHeaders(headers, options = {}) {
   if (groupByType) {
     // Group headers by category
     const groups = {
-      'Threading': [],
-      'Authentication': [],
-      'Delivery': [],
+      Threading: [],
+      Authentication: [],
+      Delivery: [],
       'Spam/Security': [],
-      'Content': [],
-      'Other': []
+      Content: [],
+      Other: [],
     };
 
-    headers.forEach(h => {
+    headers.forEach((h) => {
       const name = h.name;
       if (['Message-ID', 'In-Reply-To', 'References'].includes(name)) {
         groups['Threading'].push(h);
-      } else if (['Authentication-Results', 'DKIM-Signature', 'ARC-Authentication-Results', 'Received-SPF'].includes(name)) {
+      } else if (
+        [
+          'Authentication-Results',
+          'DKIM-Signature',
+          'ARC-Authentication-Results',
+          'Received-SPF',
+        ].includes(name)
+      ) {
         groups['Authentication'].push(h);
       } else if (name === 'Received' || name.startsWith('X-MS-Exchange')) {
         groups['Delivery'].push(h);
-      } else if (name.includes('Antispam') || name.includes('SCL') || name === 'X-Spam-Status') {
+      } else if (
+        name.includes('Antispam') ||
+        name.includes('SCL') ||
+        name === 'X-Spam-Status'
+      ) {
         groups['Spam/Security'].push(h);
-      } else if (['Content-Type', 'MIME-Version', 'Content-Transfer-Encoding'].includes(name)) {
+      } else if (
+        ['Content-Type', 'MIME-Version', 'Content-Transfer-Encoding'].includes(
+          name
+        )
+      ) {
         groups['Content'].push(h);
       } else {
         groups['Other'].push(h);
@@ -82,9 +97,10 @@ function formatHeaders(headers, options = {}) {
     for (const [groupName, groupHeaders] of Object.entries(groups)) {
       if (groupHeaders.length > 0) {
         output.push(`\n### ${groupName}`);
-        groupHeaders.forEach(h => {
+        groupHeaders.forEach((h) => {
           // Truncate very long values
-          const value = h.value.length > 500 ? h.value.substring(0, 500) + '...' : h.value;
+          const value =
+            h.value.length > 500 ? h.value.substring(0, 500) + '...' : h.value;
           output.push(`**${h.name}**: \`${value}\``);
         });
       }
@@ -95,7 +111,7 @@ function formatHeaders(headers, options = {}) {
     const importantHeaders = [];
     const otherHeaders = [];
 
-    headers.forEach(h => {
+    headers.forEach((h) => {
       if (importantSet.has(h.name)) {
         importantHeaders.push(h);
       } else {
@@ -105,8 +121,9 @@ function formatHeaders(headers, options = {}) {
 
     if (importantHeaders.length > 0) {
       output.push('## Key Headers\n');
-      importantHeaders.forEach(h => {
-        const value = h.value.length > 300 ? h.value.substring(0, 300) + '...' : h.value;
+      importantHeaders.forEach((h) => {
+        const value =
+          h.value.length > 300 ? h.value.substring(0, 300) + '...' : h.value;
         output.push(`**${h.name}**:`);
         output.push('```');
         output.push(value);
@@ -116,8 +133,9 @@ function formatHeaders(headers, options = {}) {
 
     if (includeAll && otherHeaders.length > 0) {
       output.push('\n## All Other Headers\n');
-      otherHeaders.forEach(h => {
-        const value = h.value.length > 200 ? h.value.substring(0, 200) + '...' : h.value;
+      otherHeaders.forEach((h) => {
+        const value =
+          h.value.length > 200 ? h.value.substring(0, 200) + '...' : h.value;
         output.push(`- **${h.name}**: \`${value}\``);
       });
     }
@@ -143,10 +161,12 @@ async function handleGetEmailHeaders(args) {
 
   if (!emailId) {
     return {
-      content: [{
-        type: "text",
-        text: "Email ID is required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Email ID is required.',
+        },
+      ],
     };
   }
 
@@ -164,23 +184,31 @@ async function handleGetEmailHeaders(args) {
       'conversationId',
       'conversationIndex',
       'receivedDateTime',
-      'sentDateTime'
+      'sentDateTime',
     ].join(',');
 
     const endpoint = `me/messages/${encodeURIComponent(emailId)}`;
     const queryParams = {
-      $select: selectFields
+      $select: selectFields,
     };
 
     try {
-      const email = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+      const email = await callGraphAPI(
+        accessToken,
+        'GET',
+        endpoint,
+        null,
+        queryParams
+      );
 
       if (!email) {
         return {
-          content: [{
-            type: "text",
-            text: `Email with ID ${emailId} not found.`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `Email with ID ${emailId} not found.`,
+            },
+          ],
         };
       }
 
@@ -190,27 +218,33 @@ async function handleGetEmailHeaders(args) {
       let filteredHeaders = headers;
       if (importantOnly) {
         const importantSet = new Set(IMPORTANT_HEADERS);
-        filteredHeaders = headers.filter(h => importantSet.has(h.name));
+        filteredHeaders = headers.filter((h) => importantSet.has(h.name));
       }
 
       // Return raw JSON if requested
       if (raw) {
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              id: email.id,
-              subject: email.subject,
-              internetMessageId: email.internetMessageId,
-              conversationId: email.conversationId,
-              headers: filteredHeaders
-            }, null, 2)
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  id: email.id,
+                  subject: email.subject,
+                  internetMessageId: email.internetMessageId,
+                  conversationId: email.conversationId,
+                  headers: filteredHeaders,
+                },
+                null,
+                2
+              ),
+            },
+          ],
           _meta: {
             emailId: email.id,
             headerCount: filteredHeaders.length,
-            format: 'json'
-          }
+            format: 'json',
+          },
         };
       }
 
@@ -218,10 +252,16 @@ async function handleGetEmailHeaders(args) {
       let output = [];
       output.push(`# Email Headers\n`);
       output.push(`**Subject**: ${email.subject || '(no subject)'}`);
-      output.push(`**From**: ${email.from?.emailAddress?.address || 'unknown'}`);
+      output.push(
+        `**From**: ${email.from?.emailAddress?.address || 'unknown'}`
+      );
       output.push(`**Received**: ${email.receivedDateTime || 'unknown'}`);
-      output.push(`**Message-ID**: \`${email.internetMessageId || 'not available'}\``);
-      output.push(`**Conversation-ID**: \`${email.conversationId || 'not available'}\``);
+      output.push(
+        `**Message-ID**: \`${email.internetMessageId || 'not available'}\``
+      );
+      output.push(
+        `**Conversation-ID**: \`${email.conversationId || 'not available'}\``
+      );
       output.push(`\n---\n`);
       output.push(`**Total Headers**: ${headers.length}`);
       if (importantOnly) {
@@ -229,58 +269,70 @@ async function handleGetEmailHeaders(args) {
       }
       output.push('\n');
 
-      output.push(formatHeaders(filteredHeaders, {
-        groupByType: groupByType,
-        includeAll: !importantOnly
-      }));
+      output.push(
+        formatHeaders(filteredHeaders, {
+          groupByType: groupByType,
+          includeAll: !importantOnly,
+        })
+      );
 
       return {
-        content: [{
-          type: "text",
-          text: output.join('\n')
-        }],
+        content: [
+          {
+            type: 'text',
+            text: output.join('\n'),
+          },
+        ],
         _meta: {
           emailId: email.id,
           internetMessageId: email.internetMessageId,
           conversationId: email.conversationId,
           headerCount: headers.length,
-          displayedHeaders: filteredHeaders.length
-        }
+          displayedHeaders: filteredHeaders.length,
+        },
       };
     } catch (error) {
       console.error(`Error getting email headers: ${error.message}`);
 
       if (error.message.includes("doesn't belong to the targeted mailbox")) {
         return {
-          content: [{
-            type: "text",
-            text: `The email ID seems invalid or doesn't belong to your mailbox.`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `The email ID seems invalid or doesn't belong to your mailbox.`,
+            },
+          ],
         };
       }
 
       return {
-        content: [{
-          type: "text",
-          text: `Failed to get email headers: ${error.message}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Failed to get email headers: ${error.message}`,
+          },
+        ],
       };
     }
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error accessing email: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error accessing email: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -288,5 +340,5 @@ async function handleGetEmailHeaders(args) {
 module.exports = {
   handleGetEmailHeaders,
   formatHeaders,
-  IMPORTANT_HEADERS
+  IMPORTANT_HEADERS,
 };

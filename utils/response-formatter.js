@@ -12,9 +12,9 @@
  * Verbosity levels for response formatting
  */
 const VERBOSITY = {
-  MINIMAL: 'minimal',   // IDs + subject only (for batch operations)
+  MINIMAL: 'minimal', // IDs + subject only (for batch operations)
   STANDARD: 'standard', // Key fields (default)
-  FULL: 'full'          // All available fields
+  FULL: 'full', // All available fields
 };
 
 /**
@@ -26,7 +26,7 @@ const DEFAULT_LIMITS = {
   bodyPreviewLength: 100,
   batchExport: 25,
   maxBodyTruncation: 2000,
-  maxTableRows: 50
+  maxTableRows: 50,
 };
 
 /**
@@ -44,7 +44,7 @@ function truncateWithMeta(text, maxChars = DEFAULT_LIMITS.maxBodyTruncation) {
     content: text.substring(0, maxChars),
     _truncated: true,
     _fullLength: text.length,
-    _hint: 'Use read-email with includeFullBody=true for complete content'
+    _hint: 'Use read-email with includeFullBody=true for complete content',
   };
 }
 
@@ -66,7 +66,10 @@ function formatEmailMinimal(email, index) {
  * @returns {string} - Standard markdown format
  */
 function formatEmailStandard(email, index) {
-  const from = email.from?.emailAddress || { name: 'Unknown', address: 'unknown' };
+  const from = email.from?.emailAddress || {
+    name: 'Unknown',
+    address: 'unknown',
+  };
   const date = formatDate(email.receivedDateTime);
   const readStatus = email.isRead ? '' : '**[UNREAD]** ';
   const attachIcon = email.hasAttachments ? ' 📎' : '';
@@ -84,14 +87,18 @@ function formatEmailStandard(email, index) {
  * @returns {string} - Full markdown format with all fields
  */
 function formatEmailFull(email, index) {
-  const from = email.from?.emailAddress || { name: 'Unknown', address: 'unknown' };
+  const from = email.from?.emailAddress || {
+    name: 'Unknown',
+    address: 'unknown',
+  };
   const to = formatRecipients(email.toRecipients);
   const cc = formatRecipients(email.ccRecipients);
   const date = formatDate(email.receivedDateTime);
   const readStatus = email.isRead ? 'Read' : '**UNREAD**';
   const importance = email.importance || 'normal';
-  const preview = email.bodyPreview ?
-    truncateText(email.bodyPreview, DEFAULT_LIMITS.bodyPreviewLength) : '';
+  const preview = email.bodyPreview
+    ? truncateText(email.bodyPreview, DEFAULT_LIMITS.bodyPreviewLength)
+    : '';
 
   let output = `### ${index}. ${email.subject || '(no subject)'}
 
@@ -124,7 +131,12 @@ function formatEmailFull(email, index) {
  * @param {object} meta - Metadata (totalAvailable, hasMore, nextPageToken)
  * @returns {string} - Formatted Markdown string
  */
-function formatEmailList(emails, folder, verbosity = VERBOSITY.STANDARD, meta = {}) {
+function formatEmailList(
+  emails,
+  folder,
+  verbosity = VERBOSITY.STANDARD,
+  meta = {}
+) {
   if (!emails || emails.length === 0) {
     return `No emails found in ${folder}.`;
   }
@@ -133,11 +145,12 @@ function formatEmailList(emails, folder, verbosity = VERBOSITY.STANDARD, meta = 
   let output = `## Emails in ${folder} (${count}${meta.totalAvailable ? `/${meta.totalAvailable}` : ''})\n\n`;
 
   // Format based on verbosity
-  const formatFn = {
-    [VERBOSITY.MINIMAL]: formatEmailMinimal,
-    [VERBOSITY.STANDARD]: formatEmailStandard,
-    [VERBOSITY.FULL]: formatEmailFull
-  }[verbosity] || formatEmailStandard;
+  const formatFn =
+    {
+      [VERBOSITY.MINIMAL]: formatEmailMinimal,
+      [VERBOSITY.STANDARD]: formatEmailStandard,
+      [VERBOSITY.FULL]: formatEmailFull,
+    }[verbosity] || formatEmailStandard;
 
   output += emails.map((email, i) => formatFn(email, i + 1)).join('\n\n');
 
@@ -167,7 +180,10 @@ function formatEmailListAsTable(emails, folder, meta = {}) {
 
   const rows = emails.slice(0, DEFAULT_LIMITS.maxTableRows);
   rows.forEach((email, i) => {
-    const from = email.from?.emailAddress?.name || email.from?.emailAddress?.address || 'Unknown';
+    const from =
+      email.from?.emailAddress?.name ||
+      email.from?.emailAddress?.address ||
+      'Unknown';
     const date = formatDateShort(email.receivedDateTime);
     const status = email.isRead ? '📖' : '📬';
     const subject = truncateText(email.subject || '(no subject)', 40);
@@ -194,7 +210,11 @@ function formatEmailListAsTable(emails, folder, meta = {}) {
  * @param {object} options - Additional options (includeHeaders, includeRaw)
  * @returns {string} - Formatted Markdown string
  */
-function formatEmailContent(email, verbosity = VERBOSITY.STANDARD, options = {}) {
+function formatEmailContent(
+  email,
+  verbosity = VERBOSITY.STANDARD,
+  options = {}
+) {
   const from = formatEmailAddress(email.from?.emailAddress);
   const to = formatRecipients(email.toRecipients);
   const cc = formatRecipients(email.ccRecipients);
@@ -215,8 +235,10 @@ function formatEmailContent(email, verbosity = VERBOSITY.STANDARD, options = {})
 
   if (verbosity === VERBOSITY.FULL) {
     output += `\n**ID:** \`${email.id}\``;
-    if (email.conversationId) output += `\n**Conversation ID:** \`${email.conversationId}\``;
-    if (email.internetMessageId) output += `\n**Message-ID:** \`${email.internetMessageId}\``;
+    if (email.conversationId)
+      output += `\n**Conversation ID:** \`${email.conversationId}\``;
+    if (email.internetMessageId)
+      output += `\n**Message-ID:** \`${email.internetMessageId}\``;
   }
 
   output += '\n\n---\n\n';
@@ -224,9 +246,10 @@ function formatEmailContent(email, verbosity = VERBOSITY.STANDARD, options = {})
   // Body content
   let body = '';
   if (email.body) {
-    body = email.body.contentType === 'html'
-      ? stripHtml(email.body.content)
-      : email.body.content;
+    body =
+      email.body.contentType === 'html'
+        ? stripHtml(email.body.content)
+        : email.body.content;
   } else {
     body = email.bodyPreview || 'No content';
   }
@@ -246,7 +269,10 @@ function formatEmailContent(email, verbosity = VERBOSITY.STANDARD, options = {})
 
   // Headers if requested
   if (options.includeHeaders && email.internetMessageHeaders) {
-    output += formatEmailHeaders(email.internetMessageHeaders, options.includeAllHeaders);
+    output += formatEmailHeaders(
+      email.internetMessageHeaders,
+      options.includeAllHeaders
+    );
   }
 
   return output;
@@ -262,22 +288,34 @@ function formatEmailHeaders(headers, includeAll = false) {
   if (!headers || headers.length === 0) return '';
 
   const importantHeaders = [
-    'Message-ID', 'Date', 'Received', 'DKIM-Signature',
-    'Authentication-Results', 'X-MS-Exchange-Organization-AuthSource',
-    'X-MS-Exchange-Organization-AuthAs', 'Return-Path',
-    'X-Originating-IP', 'X-MS-Has-Attach', 'SPF', 'DMARC'
+    'Message-ID',
+    'Date',
+    'Received',
+    'DKIM-Signature',
+    'Authentication-Results',
+    'X-MS-Exchange-Organization-AuthSource',
+    'X-MS-Exchange-Organization-AuthAs',
+    'Return-Path',
+    'X-Originating-IP',
+    'X-MS-Has-Attach',
+    'SPF',
+    'DMARC',
   ];
 
   const filteredHeaders = includeAll
     ? headers
-    : headers.filter(h => importantHeaders.some(ih => h.name.toLowerCase().startsWith(ih.toLowerCase())));
+    : headers.filter((h) =>
+        importantHeaders.some((ih) =>
+          h.name.toLowerCase().startsWith(ih.toLowerCase())
+        )
+      );
 
   if (filteredHeaders.length === 0) return '';
 
   let output = '\n\n---\n\n## Email Headers (Legal/Forensic)\n\n';
   output += '| Header | Value |\n|--------|-------|\n';
 
-  filteredHeaders.forEach(h => {
+  filteredHeaders.forEach((h) => {
     const value = truncateText(h.value, 60);
     output += `| ${h.name} | \`${value}\` |\n`;
   });
@@ -297,7 +335,7 @@ function createResponseMeta(data) {
     hasMore: data.hasMore || false,
     nextPageToken: data.nextPageToken || null,
     verbosity: data.verbosity || VERBOSITY.STANDARD,
-    truncated: data.truncated || false
+    truncated: data.truncated || false,
   };
 }
 
@@ -309,7 +347,7 @@ function createResponseMeta(data) {
  */
 function wrapMcpResponse(text, meta = null) {
   const response = {
-    content: [{ type: 'text', text }]
+    content: [{ type: 'text', text }],
   };
 
   if (meta) {
@@ -333,7 +371,7 @@ function formatDate(dateStr) {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   });
 }
 
@@ -345,7 +383,7 @@ function formatDateShort(dateStr) {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-AU', {
     day: '2-digit',
-    month: 'short'
+    month: 'short',
   });
 }
 
@@ -362,9 +400,7 @@ function formatEmailAddress(addr) {
  */
 function formatRecipients(recipients) {
   if (!recipients || recipients.length === 0) return '';
-  return recipients
-    .map(r => formatEmailAddress(r.emailAddress))
-    .join(', ');
+  return recipients.map((r) => formatEmailAddress(r.emailAddress)).join(', ');
 }
 
 /**
@@ -412,5 +448,5 @@ module.exports = {
   formatEmailAddress,
   formatRecipients,
   truncateText,
-  stripHtml
+  stripHtml,
 };
