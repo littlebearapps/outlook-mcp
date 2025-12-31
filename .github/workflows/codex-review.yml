@@ -95,6 +95,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUM: ${{ steps.pr.outputs.number }}
+        # shellcheck disable=SC2016
         run: |
           echo "Fetching Codex comments for PR #$PR_NUM..."
 
@@ -186,6 +187,7 @@ jobs:
           P0: ${{ steps.codex.outputs.p0_count }}
           P1: ${{ steps.codex.outputs.p1_count }}
           PR_NUM: ${{ steps.pr.outputs.number }}
+        # shellcheck disable=SC2129
         run: |
           echo "## Codex Code Review Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
