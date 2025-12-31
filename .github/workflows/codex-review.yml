@@ -75,11 +75,11 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
           if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
-            echo "number=$INPUT_PR_NUM" >> $GITHUB_OUTPUT
+            echo "number=$INPUT_PR_NUM" >> "$GITHUB_OUTPUT"
           elif [ "$EVENT_NAME" == "pull_request" ] || [ "$EVENT_NAME" == "pull_request_review" ]; then
-            echo "number=$PR_NUM" >> $GITHUB_OUTPUT
+            echo "number=$PR_NUM" >> "$GITHUB_OUTPUT"
           else
-            echo "number=$ISSUE_NUM" >> $GITHUB_OUTPUT
+            echo "number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Wait for Codex to process
@@ -158,19 +158,19 @@ jobs:
           # Combine all comments (unresolved thread comments + issue comments + reviews)
           ALL_COMMENTS=$(echo "$UNRESOLVED_THREAD_COMMENTS" "$ISSUE_COMMENTS" "$REVIEWS" | jq -s 'add | map(select(.body != null and .body != ""))')
           TOTAL=$(echo "$ALL_COMMENTS" | jq 'length')
-          echo "codex_comment_count=$TOTAL" >> $GITHUB_OUTPUT
+          echo "codex_comment_count=$TOTAL" >> "$GITHUB_OUTPUT"
 
           # Count P0 issues (Codex badge format or explicit P0 markers)
           # Matches: ![P0 Badge], badge/P0, [P0], **P0**, explicit "P0" word
           # Avoids false positives from generic words like "critical"
           P0=$(echo "$ALL_COMMENTS" | jq '[.[] | select(.body | test("badge/P0|P0-red|\\[P0\\]|\\*\\*P0\\*\\*|\\bP0\\b"; "i"))] | length')
-          echo "p0_count=$P0" >> $GITHUB_OUTPUT
+          echo "p0_count=$P0" >> "$GITHUB_OUTPUT"
 
           # Count P1 issues (Codex badge format or explicit P1 markers)
           # Matches: ![P1 Badge], badge/P1, [P1], **P1**, explicit "P1" word
           # Avoids false positives from phrases like "no major issues"
           P1=$(echo "$ALL_COMMENTS" | jq '[.[] | select(.body | test("badge/P1|P1-orange|\\[P1\\]|\\*\\*P1\\*\\*|\\bP1\\b"; "i"))] | length')
-          echo "p1_count=$P1" >> $GITHUB_OUTPUT
+          echo "p1_count=$P1" >> "$GITHUB_OUTPUT"
 
           # Debug output
           echo "Total active Codex comments: $TOTAL"
@@ -187,45 +187,45 @@ jobs:
           P1: ${{ steps.codex.outputs.p1_count }}
           PR_NUM: ${{ steps.pr.outputs.number }}
         run: |
-          echo "## Codex Code Review Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Codex Code Review Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$TOTAL" = "0" ]; then
-            echo "> No Codex review comments found on this PR." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "_Tip: Tag \`@codex review\` in a PR comment to request a code review._" >> $GITHUB_STEP_SUMMARY
+            echo "> No Codex review comments found on this PR." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "_Tip: Tag \`@codex review\` in a PR comment to request a code review._" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "| Severity | Count | Status |" >> $GITHUB_STEP_SUMMARY
-            echo "|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Severity | Count | Status |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|----------|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
 
             # P0 status
             if [ "$P0" != "0" ]; then
-              echo "| **P0 (Blocker)** | $P0 | :x: **BLOCKING** |" >> $GITHUB_STEP_SUMMARY
+              echo "| **P0 (Blocker)** | $P0 | :x: **BLOCKING** |" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "| P0 (Blocker) | $P0 | :white_check_mark: None |" >> $GITHUB_STEP_SUMMARY
+              echo "| P0 (Blocker) | $P0 | :white_check_mark: None |" >> "$GITHUB_STEP_SUMMARY"
             fi
 
             # P1 status
             if [ "$P1" != "0" ]; then
-              echo "| **P1 (Major)** | $P1 | :x: **BLOCKING** |" >> $GITHUB_STEP_SUMMARY
+              echo "| **P1 (Major)** | $P1 | :x: **BLOCKING** |" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "| P1 (Major) | $P1 | :white_check_mark: None |" >> $GITHUB_STEP_SUMMARY
+              echo "| P1 (Major) | $P1 | :white_check_mark: None |" >> "$GITHUB_STEP_SUMMARY"
             fi
 
-            echo "| Total Comments | $TOTAL | |" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Comments | $TOTAL | |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
 
             if [ "$P0" != "0" ] || [ "$P1" != "0" ]; then
-              echo "### :warning: How to resolve" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "1. Review Codex comments on the **Conversation** and **Files changed** tabs" >> $GITHUB_STEP_SUMMARY
-              echo "2. Address all P0 and P1 issues" >> $GITHUB_STEP_SUMMARY
-              echo "3. Push fixes OR resolve the review thread if the issue is a false positive" >> $GITHUB_STEP_SUMMARY
-              echo "4. Re-run this check via Actions tab or push new commits" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "_Note: Resolved review threads are automatically ignored._" >> $GITHUB_STEP_SUMMARY
+              echo "### :warning: How to resolve" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "1. Review Codex comments on the **Conversation** and **Files changed** tabs" >> "$GITHUB_STEP_SUMMARY"
+              echo "2. Address all P0 and P1 issues" >> "$GITHUB_STEP_SUMMARY"
+              echo "3. Push fixes OR resolve the review thread if the issue is a false positive" >> "$GITHUB_STEP_SUMMARY"
+              echo "4. Re-run this check via Actions tab or push new commits" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "_Note: Resolved review threads are automatically ignored._" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo ":white_check_mark: **No blocking issues found!** PR is ready for merge." >> $GITHUB_STEP_SUMMARY
+              echo ":white_check_mark: **No blocking issues found!** PR is ready for merge." >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
 
