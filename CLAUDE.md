@@ -1,78 +1,115 @@
-# CLAUDE.md
+# CLAUDE.md - outlook-mcp
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+MCP server for Microsoft Outlook via Graph API. 27 tools across 5 modules.
 
-## Development Commands
+## Commands
 
-- `npm install` - **ALWAYS run first** to install dependencies 
-- `npm start` - Start the MCP server
-- `npm run auth-server` - Start the OAuth authentication server on port 3333 (**required for authentication**)
-- `npm run test-mode` - Start the server in test mode with mock data
-- `npm run inspect` - Use MCP Inspector to test the server interactively
-- `npm test` - Run Jest tests
-- `./test-modular-server.sh` - Test the server using MCP Inspector
-- `./test-direct.sh` - Direct testing script
-- `npx kill-port 3333` - Kill process using port 3333 if auth server won't start
+```bash
+npm install              # Install dependencies (run first)
+npm start                # Start MCP server
+npm run auth-server      # Start OAuth server on :3333 (required for auth)
+npm test                 # Run Jest tests
+npm run test-mode        # Start with mock data (USE_TEST_MODE=true)
+npm run inspect          # MCP Inspector for interactive testing
+npx kill-port 3333       # Kill auth server if port blocked
+```
 
-## Architecture Overview
+## Architecture
 
-This is a modular MCP (Model Context Protocol) server that provides Claude with access to Microsoft Outlook via the Microsoft Graph API. The architecture is organized into functional modules:
+```
+index.js              # Main entry - combines all module tools
+config.js             # Centralized config (API endpoint, defaults, timezone)
+outlook-auth-server.js # OAuth server (port 3333)
 
-### Core Structure
-- `index.js` - Main entry point that combines all module tools and handles MCP protocol
-- `config.js` - Centralized configuration including API endpoints, field selections, and authentication settings
-- `outlook-auth-server.js` - Standalone OAuth server for authentication flow
+auth/                 # 3 tools: about, authenticate, check-auth-status
+  ├── token-manager.js    # Token load/save/refresh
+  └── tools.js            # Tool definitions
 
-### Modules
-Each module exports tools and handlers:
-- `auth/` - OAuth 2.0 authentication with token management
-- `calendar/` - Calendar operations (list, create, accept, decline, delete events)
-- `email/` - Email management (list, search, read, send, mark as read)
-- `folder/` - Folder operations (list, create, move)
-- `rules/` - Email rules management
-- `utils/` - Shared utilities including Graph API client and OData helpers
+email/                # 12 tools: list, search, read, send, attachments, export, delta
+  ├── folder-utils.js     # Folder name → ID resolution
+  └── attachments.js      # List, download, view attachments
 
-### Key Components
-- **Token Management**: Tokens stored in `~/.outlook-mcp-tokens.json`
-- **Graph API Client**: `utils/graph-api.js` handles all Microsoft Graph API calls with proper OData encoding
-- **Test Mode**: Mock data responses when `USE_TEST_MODE=true`
-- **Modular Tools**: Each module exports tools array that gets combined in main server
+calendar/             # 5 tools: list, create, decline, cancel, delete
+folder/               # 4 tools: list, create, move, stats
+rules/                # 3 tools: list, create, edit-sequence
+
+utils/
+  ├── graph-api.js        # Graph API client with OData encoding
+  ├── field-presets.js    # Field selections for token efficiency
+  └── response-formatter.js # Verbosity levels (minimal/standard/full)
+```
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `index.js` | MCP protocol handler, combines all tools |
+| `config.js` | API endpoint, auth settings, defaults |
+| `auth/token-manager.js` | Token storage at `~/.outlook-mcp-tokens.json` |
+| `utils/graph-api.js` | All Graph API calls go through here |
+| `utils/field-presets.js` | Optimized field selections per operation |
+
+## Configuration
+
+**Environment (.env)**:
+```
+MS_CLIENT_ID=your-client-id
+MS_CLIENT_SECRET=your-secret-VALUE    # NOT the Secret ID!
+USE_TEST_MODE=false
+```
+
+**Tokens stored at**: `~/.outlook-mcp-tokens.json`
+
+**Defaults**:
+- Timezone: `Australia/Melbourne`
+- Page size: 25
+- Max results: 100
 
 ## Authentication Flow
 
-1. Azure app registration required with specific permissions (Mail.Read, Mail.Send, Calendars.ReadWrite, etc.)
-2. Start auth server: `npm run auth-server` 
-3. Use authenticate tool to get OAuth URL
-4. Complete browser authentication
-5. Tokens automatically stored and refreshed
+1. Start auth server: `npm run auth-server`
+2. Call `authenticate` tool → get URL
+3. Open URL in browser → Microsoft login
+4. Grant permissions → tokens saved automatically
+5. Tokens auto-refresh on expiration
 
-## Configuration Requirements
+## Adding New Tools
 
-### Environment Variables
-- **For .env file**: Use `MS_CLIENT_ID` and `MS_CLIENT_SECRET`
-- **For Claude Desktop config**: Use `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET`
-- **Important**: Always use the client secret VALUE from Azure, not the Secret ID
-- Copy `.env.example` to `.env` and populate with real Azure credentials
-- Default timezone is "Central European Standard Time"
-- Default page size is 25, max results 50
+1. Create handler in module directory (e.g., `email/new-tool.js`)
+2. Export from module `index.js`
+3. Add to `TOOLS` array in main `index.js`
+4. Add test in `test/[module]/`
 
-### Common Setup Issues
-1. **Missing dependencies**: Always run `npm install` first
-2. **Wrong secret**: Use Azure secret VALUE, not ID (AADSTS7000215 error)
-3. **Auth server not running**: Start `npm run auth-server` before authenticating
-4. **Port conflicts**: Use `npx kill-port 3333` if port is in use
+## Common Issues
 
-## Test Mode
+| Issue | Solution |
+|-------|----------|
+| `AADSTS7000215` (invalid secret) | Use secret **VALUE**, not Secret ID from Azure |
+| `EADDRINUSE :3333` | `npx kill-port 3333` then restart auth server |
+| Module not found | Run `npm install` |
+| Auth URL doesn't work | Start auth server first: `npm run auth-server` |
+| Empty API response | Check auth status with `check-auth-status` tool |
 
-Set `USE_TEST_MODE=true` to use mock data instead of real API calls. Mock responses are defined in `utils/mock-data.js`.
+## Testing
 
-## OData Query Handling
+```bash
+npm test                    # Jest unit tests
+./test-modular-server.sh    # MCP Inspector interactive
+./test-direct.sh            # Direct testing
+USE_TEST_MODE=true npm start # Mock data mode
+```
 
-The Graph API client properly handles OData filters with URI encoding. Filters are processed separately from other query parameters to ensure correct escaping of special characters.
+Mock data defined in `utils/mock-data.js`.
 
-## Error Handling
+## Graph API Notes
 
-- Authentication failures return "UNAUTHORIZED" error
-- Graph API errors include status codes and response details
-- Token expiration triggers re-authentication flow
-- Empty API responses are handled gracefully (returns '{}' if empty)
+- OData filters use proper URI encoding via `utils/odata-helpers.js`
+- Field presets in `utils/field-presets.js` optimize token usage
+- Response verbosity: `minimal`, `standard`, `full` (controls output detail)
+- Delta sync uses `@odata.deltaLink` for incremental updates
+
+## See Also
+
+- `README.md` - Full documentation, Azure setup, tool reference
+- `docs/quickrefs/tools-reference.md` - All 27 tools quick reference
+- `.env.example` - Environment template
