@@ -15,6 +15,10 @@ const { calendarTools } = require('./calendar');
 const { emailTools } = require('./email');
 const { folderTools } = require('./folder');
 const { rulesTools } = require('./rules');
+const { contactsTools } = require('./contacts');
+const { categoriesTools } = require('./categories');
+const { settingsTools } = require('./settings');
+const { advancedTools } = require('./advanced');
 
 // Log startup information
 console.error(`STARTING ${config.SERVER_NAME.toUpperCase()} MCP SERVER`);
@@ -26,8 +30,11 @@ const TOOLS = [
   ...calendarTools,
   ...emailTools,
   ...folderTools,
-  ...rulesTools
-  // Future modules: contactsTools, etc.
+  ...rulesTools,
+  ...contactsTools,
+  ...categoriesTools,
+  ...settingsTools,
+  ...advancedTools
 ];
 
 // Create server with tools capabilities

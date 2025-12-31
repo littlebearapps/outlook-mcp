@@ -9,6 +9,9 @@ const handleMarkAsRead = require('./mark-as-read');
 const { handleListAttachments, handleDownloadAttachment, handleGetAttachmentContent } = require('./attachments');
 const { handleExportEmail, handleBatchExportEmails } = require('./export');
 const handleListEmailsDelta = require('./delta');
+const { handleGetEmailHeaders } = require('./headers');
+const { handleGetMimeContent } = require('./mime');
+const { handleListConversations, handleGetConversation, handleExportConversation } = require('./conversations');
 
 // Email tool definitions
 const emailTools = [
@@ -356,6 +359,141 @@ const emailTools = [
       required: ["messageId"]
     },
     handler: handleSearchByMessageId
+  },
+  {
+    name: "get-email-headers",
+    description: "Get all email headers for forensics, spam analysis, delivery troubleshooting, or threading",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: {
+          type: "string",
+          description: "ID of the email to get headers from (required)"
+        },
+        groupByType: {
+          type: "boolean",
+          description: "Group headers by category (Threading, Authentication, Delivery, etc.). Default: false"
+        },
+        importantOnly: {
+          type: "boolean",
+          description: "Show only important headers (DKIM, SPF, Received, Message-ID, etc.). Default: false"
+        },
+        raw: {
+          type: "boolean",
+          description: "Return raw JSON instead of formatted Markdown. Default: false"
+        }
+      },
+      required: ["id"]
+    },
+    handler: handleGetEmailHeaders
+  },
+  {
+    name: "get-mime-content",
+    description: "Get raw MIME/EML content of an email for archival, forensics, or forwarding",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: {
+          type: "string",
+          description: "ID of the email to get MIME content from (required)"
+        },
+        headersOnly: {
+          type: "boolean",
+          description: "Return only MIME headers without body. Default: false"
+        },
+        base64: {
+          type: "boolean",
+          description: "Return content as base64 encoded (for binary safety). Default: false"
+        },
+        maxSize: {
+          type: "number",
+          description: "Max content size in bytes to return (default: 1MB, 0 = no limit)"
+        }
+      },
+      required: ["id"]
+    },
+    handler: handleGetMimeContent
+  },
+  {
+    name: "list-conversations",
+    description: "List email conversations (threads) grouped by conversationId",
+    inputSchema: {
+      type: "object",
+      properties: {
+        folder: {
+          type: "string",
+          description: "Folder to scan (default: inbox)"
+        },
+        count: {
+          type: "number",
+          description: "Number of conversations to return (default: 20, max: 50)"
+        },
+        outputVerbosity: {
+          type: "string",
+          enum: ["minimal", "standard", "full"],
+          description: "Output detail level (default: standard)"
+        }
+      },
+      required: []
+    },
+    handler: handleListConversations
+  },
+  {
+    name: "get-conversation",
+    description: "Get all messages in an email conversation thread",
+    inputSchema: {
+      type: "object",
+      properties: {
+        conversationId: {
+          type: "string",
+          description: "Conversation ID to retrieve (required)"
+        },
+        includeHeaders: {
+          type: "boolean",
+          description: "Include email headers for each message. Default: false"
+        },
+        outputVerbosity: {
+          type: "string",
+          enum: ["minimal", "standard", "full"],
+          description: "Output detail level (default: standard)"
+        }
+      },
+      required: ["conversationId"]
+    },
+    handler: handleGetConversation
+  },
+  {
+    name: "export-conversation",
+    description: "Export entire email conversation to various formats (EML, MBOX, Markdown, JSON, HTML)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        conversationId: {
+          type: "string",
+          description: "Conversation ID to export (required)"
+        },
+        format: {
+          type: "string",
+          enum: ["eml", "mbox", "markdown", "json", "html"],
+          description: "Export format (default: markdown)"
+        },
+        outputDir: {
+          type: "string",
+          description: "Output directory path (required)"
+        },
+        includeAttachments: {
+          type: "boolean",
+          description: "Include attachments (default: true)"
+        },
+        order: {
+          type: "string",
+          enum: ["chronological", "reverse"],
+          description: "Message order (default: chronological)"
+        }
+      },
+      required: ["conversationId", "outputDir"]
+    },
+    handler: handleExportConversation
   }
 ];
 
@@ -372,5 +510,10 @@ module.exports = {
   handleGetAttachmentContent,
   handleExportEmail,
   handleBatchExportEmails,
-  handleListEmailsDelta
+  handleListEmailsDelta,
+  handleGetEmailHeaders,
+  handleGetMimeContent,
+  handleListConversations,
+  handleGetConversation,
+  handleExportConversation
 };

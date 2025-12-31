@@ -1,0 +1,588 @@
+/**
+ * Settings module for Outlook MCP server
+ *
+ * Manages mailbox settings, automatic replies (out-of-office),
+ * and working hours configuration.
+ */
+const { callGraphAPI } = require('../utils/graph-api');
+const { ensureAuthenticated } = require('../auth');
+
+// Days of the week for working hours
+const DAYS_OF_WEEK = [
+  'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
+];
+
+/**
+ * Format time for display (HH:MM)
+ */
+function formatTime(timeString) {
+  if (!timeString) return 'Not set';
+  // Graph API returns time in ISO format like "08:00:00.0000000"
+  return timeString.substring(0, 5);
+}
+
+/**
+ * Format working hours for display
+ */
+function formatWorkingHours(workingHours) {
+  if (!workingHours) return 'Not configured';
+
+  const lines = [];
+  lines.push(`**Time Zone**: ${workingHours.timeZone?.name || 'Not set'}`);
+  lines.push(`**Start Time**: ${formatTime(workingHours.startTime)}`);
+  lines.push(`**End Time**: ${formatTime(workingHours.endTime)}`);
+
+  if (workingHours.daysOfWeek && workingHours.daysOfWeek.length > 0) {
+    const days = workingHours.daysOfWeek.map(d =>
+      d.charAt(0).toUpperCase() + d.slice(1)
+    );
+    lines.push(`**Work Days**: ${days.join(', ')}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Format automatic replies for display
+ */
+function formatAutomaticReplies(settings) {
+  if (!settings) return 'Not configured';
+
+  const lines = [];
+  lines.push(`**Status**: ${settings.status === 'disabled' ? '🔴 Disabled' :
+    settings.status === 'alwaysEnabled' ? '🟢 Always Enabled' :
+      '📅 Scheduled'}`);
+
+  if (settings.status !== 'disabled') {
+    if (settings.scheduledStartDateTime) {
+      lines.push(`**Scheduled Start**: ${new Date(settings.scheduledStartDateTime.dateTime).toLocaleString()}`);
+    }
+    if (settings.scheduledEndDateTime) {
+      lines.push(`**Scheduled End**: ${new Date(settings.scheduledEndDateTime.dateTime).toLocaleString()}`);
+    }
+
+    if (settings.internalReplyMessage) {
+      lines.push(`\n**Internal Reply**:\n${settings.internalReplyMessage.substring(0, 500)}${settings.internalReplyMessage.length > 500 ? '...' : ''}`);
+    }
+
+    if (settings.externalReplyMessage) {
+      lines.push(`\n**External Reply**:\n${settings.externalReplyMessage.substring(0, 500)}${settings.externalReplyMessage.length > 500 ? '...' : ''}`);
+    }
+
+    lines.push(`\n**External Audience**: ${settings.externalAudience || 'none'}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Get mailbox settings handler
+ */
+async function handleGetMailboxSettings(args) {
+  const section = args.section; // Optional: 'all', 'language', 'timezone', 'workingHours', 'automaticReplies'
+
+  try {
+    const accessToken = await ensureAuthenticated();
+
+    let endpoint = '/me/mailboxSettings';
+    if (section && section !== 'all') {
+      endpoint = `/me/mailboxSettings/${section}`;
+    }
+
+    const settings = await callGraphAPI(accessToken, endpoint, 'GET');
+
+    let output = [];
+    output.push('# Mailbox Settings\n');
+
+    if (section && section !== 'all') {
+      // Single section
+      output.push(`## ${section.charAt(0).toUpperCase() + section.slice(1)}\n`);
+      output.push('```json');
+      output.push(JSON.stringify(settings, null, 2));
+      output.push('```');
+    } else {
+      // All settings
+      if (settings.language) {
+        output.push('## Language');
+        output.push(`**Locale**: ${settings.language.locale || 'Not set'}`);
+        output.push(`**Display Name**: ${settings.language.displayName || 'Not set'}`);
+        output.push('');
+      }
+
+      if (settings.timeZone) {
+        output.push('## Time Zone');
+        output.push(`**Zone**: ${settings.timeZone}`);
+        output.push('');
+      }
+
+      if (settings.dateFormat) {
+        output.push('## Date/Time Format');
+        output.push(`**Date Format**: ${settings.dateFormat}`);
+        output.push(`**Time Format**: ${settings.timeFormat || 'Not set'}`);
+        output.push('');
+      }
+
+      if (settings.workingHours) {
+        output.push('## Working Hours');
+        output.push(formatWorkingHours(settings.workingHours));
+        output.push('');
+      }
+
+      if (settings.automaticRepliesSetting) {
+        output.push('## Automatic Replies (Out of Office)');
+        output.push(formatAutomaticReplies(settings.automaticRepliesSetting));
+        output.push('');
+      }
+
+      if (settings.delegateMeetingMessageDeliveryOptions) {
+        output.push('## Delegate Settings');
+        output.push(`**Meeting Message Delivery**: ${settings.delegateMeetingMessageDeliveryOptions}`);
+      }
+    }
+
+    return {
+      content: [{
+        type: "text",
+        text: output.join('\n')
+      }],
+      _meta: {
+        settings
+      }
+    };
+  } catch (error) {
+    if (error.message === 'Authentication required') {
+      return {
+        content: [{
+          type: "text",
+          text: "Authentication required. Please use the 'authenticate' tool first."
+        }]
+      };
+    }
+    return {
+      content: [{
+        type: "text",
+        text: `Error getting mailbox settings: ${error.message}`
+      }]
+    };
+  }
+}
+
+/**
+ * Get automatic replies (out of office) handler
+ */
+async function handleGetAutomaticReplies(args) {
+  try {
+    const accessToken = await ensureAuthenticated();
+
+    const settings = await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings/automaticRepliesSetting',
+      'GET'
+    );
+
+    let output = [];
+    output.push('# Automatic Replies (Out of Office)\n');
+    output.push(formatAutomaticReplies(settings));
+
+    return {
+      content: [{
+        type: "text",
+        text: output.join('\n')
+      }],
+      _meta: {
+        settings
+      }
+    };
+  } catch (error) {
+    if (error.message === 'Authentication required') {
+      return {
+        content: [{
+          type: "text",
+          text: "Authentication required. Please use the 'authenticate' tool first."
+        }]
+      };
+    }
+    return {
+      content: [{
+        type: "text",
+        text: `Error getting automatic replies: ${error.message}`
+      }]
+    };
+  }
+}
+
+/**
+ * Set automatic replies (out of office) handler
+ */
+async function handleSetAutomaticReplies(args) {
+  const {
+    enabled,
+    startDateTime,
+    endDateTime,
+    internalReplyMessage,
+    externalReplyMessage,
+    externalAudience
+  } = args;
+
+  try {
+    const accessToken = await ensureAuthenticated();
+
+    // Build the settings object
+    const settings = {};
+
+    // Determine status
+    if (enabled === false) {
+      settings.status = 'disabled';
+    } else if (startDateTime && endDateTime) {
+      settings.status = 'scheduled';
+      settings.scheduledStartDateTime = {
+        dateTime: new Date(startDateTime).toISOString(),
+        timeZone: 'UTC'
+      };
+      settings.scheduledEndDateTime = {
+        dateTime: new Date(endDateTime).toISOString(),
+        timeZone: 'UTC'
+      };
+    } else if (enabled === true) {
+      settings.status = 'alwaysEnabled';
+    }
+
+    // Reply messages
+    if (internalReplyMessage !== undefined) {
+      settings.internalReplyMessage = internalReplyMessage;
+    }
+
+    if (externalReplyMessage !== undefined) {
+      settings.externalReplyMessage = externalReplyMessage;
+    }
+
+    // External audience
+    if (externalAudience) {
+      if (!['none', 'contactsOnly', 'all'].includes(externalAudience)) {
+        return {
+          content: [{
+            type: "text",
+            text: "externalAudience must be 'none', 'contactsOnly', or 'all'."
+          }]
+        };
+      }
+      settings.externalAudience = externalAudience;
+    }
+
+    // Apply settings
+    await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings',
+      'PATCH',
+      { automaticRepliesSetting: settings }
+    );
+
+    // Get updated settings
+    const updated = await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings/automaticRepliesSetting',
+      'GET'
+    );
+
+    let output = [];
+    output.push('✅ Automatic replies updated!\n');
+    output.push(formatAutomaticReplies(updated));
+
+    return {
+      content: [{
+        type: "text",
+        text: output.join('\n')
+      }],
+      _meta: {
+        settings: updated
+      }
+    };
+  } catch (error) {
+    if (error.message === 'Authentication required') {
+      return {
+        content: [{
+          type: "text",
+          text: "Authentication required. Please use the 'authenticate' tool first."
+        }]
+      };
+    }
+    return {
+      content: [{
+        type: "text",
+        text: `Error setting automatic replies: ${error.message}`
+      }]
+    };
+  }
+}
+
+/**
+ * Get working hours handler
+ */
+async function handleGetWorkingHours(args) {
+  try {
+    const accessToken = await ensureAuthenticated();
+
+    const settings = await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings/workingHours',
+      'GET'
+    );
+
+    let output = [];
+    output.push('# Working Hours\n');
+    output.push(formatWorkingHours(settings));
+
+    return {
+      content: [{
+        type: "text",
+        text: output.join('\n')
+      }],
+      _meta: {
+        settings
+      }
+    };
+  } catch (error) {
+    if (error.message === 'Authentication required') {
+      return {
+        content: [{
+          type: "text",
+          text: "Authentication required. Please use the 'authenticate' tool first."
+        }]
+      };
+    }
+    return {
+      content: [{
+        type: "text",
+        text: `Error getting working hours: ${error.message}`
+      }]
+    };
+  }
+}
+
+/**
+ * Set working hours handler
+ */
+async function handleSetWorkingHours(args) {
+  const { startTime, endTime, daysOfWeek, timeZone } = args;
+
+  // Validate inputs
+  if (!startTime && !endTime && !daysOfWeek && !timeZone) {
+    return {
+      content: [{
+        type: "text",
+        text: "At least one of startTime, endTime, daysOfWeek, or timeZone is required."
+      }]
+    };
+  }
+
+  // Validate time format (HH:MM or HH:MM:SS)
+  const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
+  if (startTime && !timeRegex.test(startTime)) {
+    return {
+      content: [{
+        type: "text",
+        text: "startTime must be in HH:MM or HH:MM:SS format (e.g., '09:00' or '09:00:00')."
+      }]
+    };
+  }
+  if (endTime && !timeRegex.test(endTime)) {
+    return {
+      content: [{
+        type: "text",
+        text: "endTime must be in HH:MM or HH:MM:SS format (e.g., '17:00' or '17:00:00')."
+      }]
+    };
+  }
+
+  // Validate days of week
+  if (daysOfWeek) {
+    const invalidDays = daysOfWeek.filter(d => !DAYS_OF_WEEK.includes(d.toLowerCase()));
+    if (invalidDays.length > 0) {
+      return {
+        content: [{
+          type: "text",
+          text: `Invalid days: ${invalidDays.join(', ')}. Valid days: ${DAYS_OF_WEEK.join(', ')}`
+        }]
+      };
+    }
+  }
+
+  try {
+    const accessToken = await ensureAuthenticated();
+
+    // Get current settings first
+    const current = await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings/workingHours',
+      'GET'
+    );
+
+    // Build update
+    const workingHours = {
+      startTime: startTime ? (startTime.length === 5 ? startTime + ':00.0000000' : startTime + '.0000000') : current.startTime,
+      endTime: endTime ? (endTime.length === 5 ? endTime + ':00.0000000' : endTime + '.0000000') : current.endTime,
+      daysOfWeek: daysOfWeek ? daysOfWeek.map(d => d.toLowerCase()) : current.daysOfWeek,
+      timeZone: timeZone ? { name: timeZone } : current.timeZone
+    };
+
+    // Apply settings
+    await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings',
+      'PATCH',
+      { workingHours }
+    );
+
+    // Get updated settings
+    const updated = await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings/workingHours',
+      'GET'
+    );
+
+    let output = [];
+    output.push('✅ Working hours updated!\n');
+    output.push(formatWorkingHours(updated));
+
+    return {
+      content: [{
+        type: "text",
+        text: output.join('\n')
+      }],
+      _meta: {
+        settings: updated
+      }
+    };
+  } catch (error) {
+    if (error.message === 'Authentication required') {
+      return {
+        content: [{
+          type: "text",
+          text: "Authentication required. Please use the 'authenticate' tool first."
+        }]
+      };
+    }
+    return {
+      content: [{
+        type: "text",
+        text: `Error setting working hours: ${error.message}`
+      }]
+    };
+  }
+}
+
+// Tool definitions
+const settingsTools = [
+  {
+    name: "get-mailbox-settings",
+    description: "Get mailbox settings (language, timezone, date format, working hours, auto-replies)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        section: {
+          type: "string",
+          enum: ["all", "language", "timeZone", "workingHours", "automaticRepliesSetting"],
+          description: "Specific section to retrieve (default: all)"
+        }
+      },
+      required: []
+    },
+    handler: handleGetMailboxSettings
+  },
+  {
+    name: "get-automatic-replies",
+    description: "Get automatic replies (out of office) configuration",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: []
+    },
+    handler: handleGetAutomaticReplies
+  },
+  {
+    name: "set-automatic-replies",
+    description: "Configure automatic replies (out of office) messages",
+    inputSchema: {
+      type: "object",
+      properties: {
+        enabled: {
+          type: "boolean",
+          description: "Enable (true) or disable (false) automatic replies"
+        },
+        startDateTime: {
+          type: "string",
+          description: "Start date/time for scheduled mode (ISO 8601 format)"
+        },
+        endDateTime: {
+          type: "string",
+          description: "End date/time for scheduled mode (ISO 8601 format)"
+        },
+        internalReplyMessage: {
+          type: "string",
+          description: "Reply message for internal senders (same organization)"
+        },
+        externalReplyMessage: {
+          type: "string",
+          description: "Reply message for external senders"
+        },
+        externalAudience: {
+          type: "string",
+          enum: ["none", "contactsOnly", "all"],
+          description: "Who receives external reply: none, contactsOnly, or all"
+        }
+      },
+      required: []
+    },
+    handler: handleSetAutomaticReplies
+  },
+  {
+    name: "get-working-hours",
+    description: "Get your configured working hours",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: []
+    },
+    handler: handleGetWorkingHours
+  },
+  {
+    name: "set-working-hours",
+    description: "Configure your working hours for scheduling",
+    inputSchema: {
+      type: "object",
+      properties: {
+        startTime: {
+          type: "string",
+          description: "Work start time in HH:MM format (e.g., '09:00')"
+        },
+        endTime: {
+          type: "string",
+          description: "Work end time in HH:MM format (e.g., '17:00')"
+        },
+        daysOfWeek: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: DAYS_OF_WEEK
+          },
+          description: "Work days (e.g., ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])"
+        },
+        timeZone: {
+          type: "string",
+          description: "Time zone name (e.g., 'Pacific Standard Time', 'Australia/Sydney')"
+        }
+      },
+      required: []
+    },
+    handler: handleSetWorkingHours
+  }
+];
+
+module.exports = {
+  settingsTools,
+  handleGetMailboxSettings,
+  handleGetAutomaticReplies,
+  handleSetAutomaticReplies,
+  handleGetWorkingHours,
+  handleSetWorkingHours
+};

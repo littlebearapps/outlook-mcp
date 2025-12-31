@@ -1,6 +1,6 @@
 # CLAUDE.md - outlook-mcp
 
-MCP server for Microsoft Outlook via Graph API. 27 tools across 5 modules.
+MCP server for Microsoft Outlook via Graph API. 55 tools across 9 modules.
 
 ## Commands
 
@@ -25,13 +25,20 @@ auth/                 # 3 tools: about, authenticate, check-auth-status
   ├── token-manager.js    # Token load/save/refresh
   └── tools.js            # Tool definitions
 
-email/                # 12 tools: list, search, read, send, attachments, export, delta
+email/                # 17 tools: list, search, read, send, attachments, export, delta, headers, MIME, conversations
   ├── folder-utils.js     # Folder name → ID resolution
-  └── attachments.js      # List, download, view attachments
+  ├── attachments.js      # List, download, view attachments
+  ├── headers.js          # Email header retrieval
+  ├── mime.js             # Raw MIME/EML content
+  └── conversations.js    # Thread listing, retrieval, export
 
 calendar/             # 5 tools: list, create, decline, cancel, delete
 folder/               # 4 tools: list, create, move, stats
 rules/                # 3 tools: list, create, edit-sequence
+contacts/             # 7 tools: list, search, get, create, update, delete, people search
+categories/           # 7 tools: list, create, update, delete, apply, focused inbox overrides
+settings/             # 5 tools: mailbox settings, automatic replies, working hours
+advanced/             # 4 tools: shared mailbox, message flags, meeting rooms
 
 utils/
   ├── graph-api.js        # Graph API client with OData encoding
@@ -111,5 +118,5 @@ Mock data defined in `utils/mock-data.js`.
 ## See Also
 
 - `README.md` - Full documentation, Azure setup, tool reference
-- `docs/quickrefs/tools-reference.md` - All 27 tools quick reference
+- `docs/quickrefs/tools-reference.md` - All 55 tools quick reference
 - `.env.example` - Environment template
