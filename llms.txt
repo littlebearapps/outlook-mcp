@@ -1,0 +1,35 @@
+# Outlook MCP Server
+
+> A Model Context Protocol (MCP) server that connects Claude and other AI assistants with Microsoft Outlook through the Microsoft Graph API. Provides 55 tools across 9 modules for email, calendar, contacts, folders, rules, categories, settings, and advanced features.
+
+## Key Information
+
+- **Package**: `@littlebearapps/outlook-mcp` on npm
+- **Install**: `npm install -g @littlebearapps/outlook-mcp` or `npx @littlebearapps/outlook-mcp`
+- **License**: MIT
+- **Node.js**: >= 18.0.0
+- **Authentication**: OAuth 2.0 with Microsoft Graph API (requires Azure app registration)
+
+## Tool Categories
+
+- **Authentication (3 tools)**: OAuth flow, auth status checking
+- **Email (17 tools)**: List, search, read, send, attachments, headers, MIME, conversations, delta sync
+- **Calendar (5 tools)**: List, create, accept, decline, cancel, delete events
+- **Contacts (7 tools)**: CRUD operations, people search
+- **Folders (4 tools)**: List, create, move emails, folder stats
+- **Rules (3 tools)**: Inbox rule management
+- **Categories (7 tools)**: Category and Focused Inbox management
+- **Settings (5 tools)**: Auto-replies, working hours, timezone
+- **Advanced (4 tools)**: Shared mailbox, message flags, meeting rooms
+
+## Documentation
+
+- [README](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/README.md): Full documentation including setup, Azure configuration, and usage
+- [Tools Reference](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/docs/quickrefs/tools-reference.md): Complete list of all 55 tools with parameters
+- [CLAUDE.md](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/CLAUDE.md): Quick reference for development
+
+## Optional
+
+- [CONTRIBUTING](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/CONTRIBUTING.md): Contribution guidelines
+- [CHANGELOG](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/CHANGELOG.md): Version history
+- [SECURITY](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/SECURITY.md): Security policy and token handling
