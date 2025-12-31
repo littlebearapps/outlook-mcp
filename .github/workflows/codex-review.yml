@@ -1,0 +1,262 @@
+# Codex Code Review Integration (Blocking)
+#
+# This workflow fetches Codex review comments and BLOCKS merge if P0/P1 issues found.
+#
+# How it works:
+# 1. Fetches PR review threads using GraphQL (filters out resolved threads)
+# 2. Fetches issue comments from users containing "codex" in login
+# 3. Counts P0 (blocker) and P1 (major) severity issues from UNRESOLVED threads only
+# 4. Generates summary table in GitHub Actions check summary
+# 5. FAILS the check if P0 or P1 issues found (blocking merge)
+#
+# To request a review: Comment "@codex review" on the PR
+#
+# Codex severity levels:
+# - P0 (Blocker): Must address before merge - BLOCKS
+# - P1 (Major): Should address before merge - BLOCKS
+# - P2+ (Minor): Address in follow-up if complex - Does NOT block
+#
+# Note: Resolved review threads are ignored - if you've addressed the issue and
+# resolved the thread, it won't block the PR.
+
+name: Codex Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  # Allow manual trigger for re-checking after fixes
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to check'
+        required: true
+        type: number
+
+# Security: Least-privilege permissions
+permissions:
+  contents: read
+  pull-requests: read
+
+# Prevent duplicate runs but don't cancel - we want latest status
+concurrency:
+  group: codex-review-${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  codex-review:
+    name: Codex Review Check
+    runs-on: ubuntu-latest
+    # Only run on PRs (not issues) and for relevant comment events
+    if: |
+      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request_review' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
+      github.event_name == 'pull_request_review_comment'
+
+    outputs:
+      p0_count: ${{ steps.codex.outputs.p0_count }}
+      p1_count: ${{ steps.codex.outputs.p1_count }}
+      total_count: ${{ steps.codex.outputs.codex_comment_count }}
+
+    steps:
+      - name: Determine PR Number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PR_NUM: ${{ github.event.inputs.pr_number }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+        run: |
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
+            echo "number=$INPUT_PR_NUM" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT_NAME" == "pull_request" ] || [ "$EVENT_NAME" == "pull_request_review" ] || [ "$EVENT_NAME" == "pull_request_review_comment" ]; then
+            # pull_request, pull_request_review, and pull_request_review_comment all use github.event.pull_request.number
+            echo "number=$PR_NUM" >> "$GITHUB_OUTPUT"
+          else
+            # issue_comment uses github.event.issue.number
+            echo "number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Wait for Codex to process
+        # Give Codex time to analyze the PR (especially on synchronize events)
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+        run: |
+          echo "Waiting 30 seconds for Codex to process new commits..."
+          sleep 30
+
+      - name: Fetch Codex comments
+        id: codex
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUM: ${{ steps.pr.outputs.number }}
+        run: |
+          echo "Fetching Codex comments for PR #$PR_NUM..."
+
+          # Extract owner and repo name
+          OWNER="${REPO%/*}"
+          REPO_NAME="${REPO#*/}"
+
+          # Use GraphQL to fetch review threads with resolution status
+          # Only comments from UNRESOLVED threads are considered
+          echo "Fetching review threads via GraphQL (filtering out resolved threads)..."
+
+          # Read GraphQL query from heredoc (quoted delimiter prevents variable expansion)
+          GRAPHQL_QUERY=$(cat <<'GRAPHQL'
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  reviewThreads(first: 100) {
+                    nodes {
+                      isResolved
+                      comments(first: 50) {
+                        nodes {
+                          author { login }
+                          body
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          GRAPHQL
+          )
+
+          GRAPHQL_RESPONSE=$(gh api graphql -f query="$GRAPHQL_QUERY" -f owner="$OWNER" -f repo="$REPO_NAME" -F pr="$PR_NUM" 2>/dev/null || echo '{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[]}}}}}')
+
+          # Extract comments from UNRESOLVED threads only, from Codex users
+          # Using heredoc for jq filter (quoted delimiter prevents variable expansion)
+          JQ_UNRESOLVED=$(cat <<'JQ'
+            [.data.repository.pullRequest.reviewThreads.nodes[]
+             | select(.isResolved == false)
+             | .comments.nodes[]
+             | select(.author.login | test("codex"; "i"))
+             | {body: .body}]
+          JQ
+          )
+          UNRESOLVED_THREAD_COMMENTS=$(echo "$GRAPHQL_RESPONSE" | jq "$JQ_UNRESOLVED" 2>/dev/null || echo "[]")
+
+          JQ_RESOLVED=$(cat <<'JQ'
+            [.data.repository.pullRequest.reviewThreads.nodes[]
+             | select(.isResolved == true)
+             | .comments.nodes[]
+             | select(.author.login | test("codex"; "i"))]
+             | length
+          JQ
+          )
+          RESOLVED_COUNT=$(echo "$GRAPHQL_RESPONSE" | jq "$JQ_RESOLVED" 2>/dev/null || echo "0")
+
+          echo "Resolved Codex threads (ignored): $RESOLVED_COUNT"
+
+          # Fetch issue comments from Codex users (these don't have thread resolution)
+          JQ_CODEX_FILTER='[.[] | select(.user.login | test("codex"; "i")) | {body: .body}]'
+          ISSUE_COMMENTS=$(gh api \
+            "repos/$REPO/issues/$PR_NUM/comments" \
+            --jq "$JQ_CODEX_FILTER" 2>/dev/null || echo "[]")
+
+          # Fetch PR reviews from Codex users (overall review comments, not line-specific)
+          REVIEWS=$(gh api \
+            "repos/$REPO/pulls/$PR_NUM/reviews" \
+            --jq "$JQ_CODEX_FILTER" 2>/dev/null || echo "[]")
+
+          # Combine all comments (unresolved thread comments + issue comments + reviews)
+          JQ_COMBINE='add | map(select(.body != null and .body != ""))'
+          ALL_COMMENTS=$(echo "$UNRESOLVED_THREAD_COMMENTS" "$ISSUE_COMMENTS" "$REVIEWS" | jq -s "$JQ_COMBINE")
+          TOTAL=$(echo "$ALL_COMMENTS" | jq 'length')
+          echo "codex_comment_count=$TOTAL" >> "$GITHUB_OUTPUT"
+
+          # Count P0 issues (Codex badge format markers only)
+          # Matches: badge/P0 (URL), P0-red (badge color), [P0], **P0**
+          # Avoids false positives from mentions like "P0/P1" in prose by not using \bP0\b
+          JQ_P0='[.[] | select(.body | test("badge/P0|P0-red|\\[P0\\]|\\*\\*P0\\*\\*"; "i"))] | length'
+          P0=$(echo "$ALL_COMMENTS" | jq "$JQ_P0")
+          echo "p0_count=$P0" >> "$GITHUB_OUTPUT"
+
+          # Count P1 issues (Codex badge format markers only)
+          # Matches: badge/P1 (URL), P1-orange (badge color), [P1], **P1**
+          # Avoids false positives from mentions like "P0/P1" in prose by not using \bP1\b
+          JQ_P1='[.[] | select(.body | test("badge/P1|P1-orange|\\[P1\\]|\\*\\*P1\\*\\*"; "i"))] | length'
+          P1=$(echo "$ALL_COMMENTS" | jq "$JQ_P1")
+          echo "p1_count=$P1" >> "$GITHUB_OUTPUT"
+
+          # Debug output
+          echo "Total active Codex comments: $TOTAL"
+          echo "P0 (blocker) issues: $P0"
+          echo "P1 (major) issues: $P1"
+          if [ "$RESOLVED_COUNT" != "0" ]; then
+            echo "Note: $RESOLVED_COUNT resolved thread comment(s) were ignored"
+          fi
+
+      - name: Generate summary
+        env:
+          TOTAL: ${{ steps.codex.outputs.codex_comment_count }}
+          P0: ${{ steps.codex.outputs.p0_count }}
+          P1: ${{ steps.codex.outputs.p1_count }}
+          PR_NUM: ${{ steps.pr.outputs.number }}
+        run: |
+          # Generate summary using a function to avoid multiple redirects (SC2129)
+          generate_summary() {
+            echo "## Codex Code Review Summary"
+            echo ""
+
+            if [ "$TOTAL" = "0" ]; then
+              echo "> No Codex review comments found on this PR."
+              echo ""
+              echo "_Tip: Tag \`@codex review\` in a PR comment to request a code review._"
+            else
+              echo "| Severity | Count | Status |"
+              echo "|----------|-------|--------|"
+
+              # P0 status
+              if [ "$P0" != "0" ]; then
+                echo "| **P0 (Blocker)** | $P0 | :x: **BLOCKING** |"
+              else
+                echo "| P0 (Blocker) | $P0 | :white_check_mark: None |"
+              fi
+
+              # P1 status
+              if [ "$P1" != "0" ]; then
+                echo "| **P1 (Major)** | $P1 | :x: **BLOCKING** |"
+              else
+                echo "| P1 (Major) | $P1 | :white_check_mark: None |"
+              fi
+
+              echo "| Total Comments | $TOTAL | |"
+              echo ""
+
+              if [ "$P0" != "0" ] || [ "$P1" != "0" ]; then
+                echo "### :warning: How to resolve"
+                echo ""
+                echo "1. Review Codex comments on the **Conversation** and **Files changed** tabs"
+                echo "2. Address all P0 and P1 issues"
+                echo "3. Push fixes OR resolve the review thread if the issue is a false positive"
+                echo "4. Re-run this check via Actions tab or push new commits"
+                echo ""
+                echo "_Note: Resolved review threads are automatically ignored._"
+              else
+                echo ":white_check_mark: **No blocking issues found!** PR is ready for merge."
+              fi
+            fi
+          }
+
+          generate_summary >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail on blocking issues
+        if: steps.codex.outputs.p0_count != '0' || steps.codex.outputs.p1_count != '0'
+        env:
+          P0: ${{ steps.codex.outputs.p0_count }}
+          P1: ${{ steps.codex.outputs.p1_count }}
+        run: |
+          echo "::error::Codex found blocking issues: $P0 P0 (blocker) and $P1 P1 (major) issues."
+          echo ""
+          echo "Please address these issues before merging."
+          echo "See the Codex comments on the PR for details."
+          exit 1
