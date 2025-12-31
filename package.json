@@ -1,34 +1,78 @@
 {
-  "name": "outlook-mcp",
-  "version": "1.0.0",
+  "name": "@littlebearapps/outlook-mcp",
+  "version": "2.0.0",
   "description": "MCP server for Claude to access Outlook data via Microsoft Graph API",
   "main": "index.js",
+  "bin": {
+    "outlook-mcp": "./index.js"
+  },
   "scripts": {
     "start": "node index.js",
     "auth-server": "node outlook-auth-server.js",
     "test-mode": "USE_TEST_MODE=true node index.js",
     "inspect": "npx @modelcontextprotocol/inspector node index.js",
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [
     "claude",
     "outlook",
     "mcp",
     "microsoft-graph",
-    "email"
+    "email",
+    "calendar",
+    "contacts",
+    "model-context-protocol",
+    "anthropic"
   ],
-  "author": "",
+  "author": "Little Bear Apps <hello@littlebearapps.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/littlebearapps/outlook-mcp.git"
+  },
+  "homepage": "https://github.com/littlebearapps/outlook-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/littlebearapps/outlook-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "index.js",
+    "config.js",
+    "outlook-auth-server.js",
+    "auth/",
+    "calendar/",
+    "categories/",
+    "contacts/",
+    "email/",
+    "folder/",
+    "rules/",
+    "settings/",
+    "advanced/",
+    "utils/",
+    ".env.example",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.1.0",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
     "@modelcontextprotocol/inspector": "^0.10.2",
+    "eslint": "^8.57.1",
     "jest": "^29.7.0",
+    "prettier": "^3.4.2",
     "supertest": "^7.0.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   }
 }

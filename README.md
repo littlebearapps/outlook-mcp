@@ -2,6 +2,11 @@
 
 A modular Model Context Protocol (MCP) server that connects Claude with Microsoft Outlook through the Microsoft Graph API.
 
+[![npm version](https://img.shields.io/npm/v/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen)](https://nodejs.org)
+
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/ryaker-outlook-mcp-badge.png)](https://mseep.ai/app/ryaker-outlook-mcp)
 
 Certified by MCPHub https://mcphub.com/mcp-servers/ryaker/outlook-mcp
@@ -26,13 +31,31 @@ Certified by MCPHub https://mcphub.com/mcp-servers/ryaker/outlook-mcp
 
 ## Quick Start
 
-1. **Install dependencies**: `npm install`
-2. **Azure setup**: Register app in Azure Portal (see [Azure App Registration](#azure-app-registration--configuration))
-3. **Configure environment**: Copy `.env.example` to `.env` and add your Azure credentials
-4. **Configure Claude**: Update your Claude Desktop config with the server path
-5. **Start auth server**: `npm run auth-server`
-6. **Authenticate**: Use the authenticate tool in Claude to get the OAuth URL
-7. **Start using**: Access your Outlook data through Claude!
+### Option A: Install from npm (Recommended)
+
+```bash
+npm install -g @littlebearapps/outlook-mcp
+```
+
+Or run directly with npx:
+
+```bash
+npx @littlebearapps/outlook-mcp
+```
+
+### Option B: Install from Source
+
+1. **Clone repository**: `git clone https://github.com/littlebearapps/outlook-mcp.git`
+2. **Install dependencies**: `npm install`
+
+### Setup (Both Options)
+
+1. **Azure setup**: Register app in Azure Portal (see [Azure App Registration](#azure-app-registration--configuration))
+2. **Configure environment**: Copy `.env.example` to `.env` and add your Azure credentials
+3. **Configure Claude**: Update your Claude Desktop config with the server path
+4. **Start auth server**: `npm run auth-server`
+5. **Authenticate**: Use the authenticate tool in Claude to get the OAuth URL
+6. **Start using**: Access your Outlook data through Claude!
 
 ## Directory Structure
 
@@ -319,20 +342,18 @@ Set `USE_TEST_MODE=true` to use mock data without real API calls.
 3. Export tool definitions from module `index.js`
 4. Import and add tools to `TOOLS` array in main `index.js`
 
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## Security
+
+For security issues, please see our [Security Policy](SECURITY.md).
+
 ## Changelog
 
-### December 2024 (v2.0)
-- **55 tools** across 9 modules (was 27 tools across 5 modules)
-- Added **Email Headers & MIME**: `get-email-headers`, `get-mime-content`
-- Added **Conversation Threading**: `list-conversations`, `get-conversation`, `export-conversation`
-- Added **Contacts Module** (7 tools): Full CRUD + people search
-- Added **Categories Module** (7 tools): Categories + Focused Inbox overrides
-- Added **Settings Module** (5 tools): Auto-replies, working hours
-- Added **Advanced Module** (4 tools): Shared mailbox, flags, meeting rooms
-- Export formats now include MBOX and HTML for conversations
-- Added `export-email`, `batch-export-emails`, `list-emails-delta`, `search-by-message-id`
-- Fixed `get-folder-stats` - Removed invalid `sizeInBytes` property
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
 
 ## License
 
-MIT
+MIT - see [LICENSE](LICENSE) for details.
