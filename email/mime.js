@@ -27,7 +27,7 @@ function parseMimeHeaders(mimeContent) {
   let currentHeader = null;
   let currentValue = '';
 
-  lines.forEach(line => {
+  lines.forEach((line) => {
     if (line.startsWith(' ') || line.startsWith('\t')) {
       // Continuation of previous header
       currentValue += ' ' + line.trim();
@@ -53,7 +53,7 @@ function parseMimeHeaders(mimeContent) {
   return {
     headers,
     headerSection,
-    bodyStart: headerEndIndex + 4
+    bodyStart: headerEndIndex + 4,
   };
 }
 
@@ -68,10 +68,13 @@ function getMimeStats(mimeContent) {
 
   return {
     bytes,
-    formattedSize: bytes < 1024 ? `${bytes} B` :
-      bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` :
-        `${(bytes / (1024 * 1024)).toFixed(2)} MB`,
-    lines
+    formattedSize:
+      bytes < 1024
+        ? `${bytes} B`
+        : bytes < 1024 * 1024
+          ? `${(bytes / 1024).toFixed(1)} KB`
+          : `${(bytes / (1024 * 1024)).toFixed(2)} MB`,
+    lines,
   };
 }
 
@@ -92,10 +95,12 @@ async function handleGetMimeContent(args) {
 
   if (!emailId) {
     return {
-      content: [{
-        type: "text",
-        text: "Email ID is required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Email ID is required.',
+        },
+      ],
     };
   }
 
@@ -109,10 +114,12 @@ async function handleGetMimeContent(args) {
 
       if (!mimeContent) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to retrieve MIME content for email ${emailId}.`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `Failed to retrieve MIME content for email ${emailId}.`,
+            },
+          ],
         };
       }
 
@@ -124,39 +131,45 @@ async function handleGetMimeContent(args) {
         if (headersOnly) {
           // Return just headers if over limit
           return {
-            content: [{
-              type: "text",
-              text: `# MIME Content (Headers Only - Content Truncated)\n\n` +
-                `**Size**: ${stats.formattedSize} (exceeds ${maxSize} byte limit)\n` +
-                `**Lines**: ${stats.lines}\n\n` +
-                `## MIME Headers\n\n\`\`\`\n${parsed.headerSection}\n\`\`\``
-            }],
+            content: [
+              {
+                type: 'text',
+                text:
+                  `# MIME Content (Headers Only - Content Truncated)\n\n` +
+                  `**Size**: ${stats.formattedSize} (exceeds ${maxSize} byte limit)\n` +
+                  `**Lines**: ${stats.lines}\n\n` +
+                  `## MIME Headers\n\n\`\`\`\n${parsed.headerSection}\n\`\`\``,
+              },
+            ],
             _meta: {
               emailId,
               bytes: stats.bytes,
               lines: stats.lines,
               truncated: true,
-              headersOnly: true
-            }
+              headersOnly: true,
+            },
           };
         }
 
         return {
-          content: [{
-            type: "text",
-            text: `# MIME Content Too Large\n\n` +
-              `**Size**: ${stats.formattedSize}\n` +
-              `**Limit**: ${(maxSize / 1024).toFixed(0)} KB\n\n` +
-              `Use \`headersOnly: true\` to get just headers, or increase \`maxSize\` parameter.\n\n` +
-              `## MIME Headers Preview\n\n\`\`\`\n${parsed.headerSection.substring(0, 2000)}${parsed.headerSection.length > 2000 ? '\n...' : ''}\n\`\`\``
-          }],
+          content: [
+            {
+              type: 'text',
+              text:
+                `# MIME Content Too Large\n\n` +
+                `**Size**: ${stats.formattedSize}\n` +
+                `**Limit**: ${(maxSize / 1024).toFixed(0)} KB\n\n` +
+                `Use \`headersOnly: true\` to get just headers, or increase \`maxSize\` parameter.\n\n` +
+                `## MIME Headers Preview\n\n\`\`\`\n${parsed.headerSection.substring(0, 2000)}${parsed.headerSection.length > 2000 ? '\n...' : ''}\n\`\`\``,
+            },
+          ],
           _meta: {
             emailId,
             bytes: stats.bytes,
             lines: stats.lines,
             truncated: true,
-            maxSizeExceeded: true
-          }
+            maxSizeExceeded: true,
+          },
         };
       }
 
@@ -184,7 +197,9 @@ async function handleGetMimeContent(args) {
         output.push(`**From**: ${parsed.headers['From']}`);
       }
       if (parsed.headers['Content-Type']) {
-        output.push(`**Content-Type**: ${parsed.headers['Content-Type'].split(';')[0]}`);
+        output.push(
+          `**Content-Type**: ${parsed.headers['Content-Type'].split(';')[0]}`
+        );
       }
 
       output.push('\n---\n');
@@ -202,10 +217,12 @@ async function handleGetMimeContent(args) {
       }
 
       return {
-        content: [{
-          type: "text",
-          text: output.join('\n')
-        }],
+        content: [
+          {
+            type: 'text',
+            text: output.join('\n'),
+          },
+        ],
         _meta: {
           emailId,
           bytes: stats.bytes,
@@ -213,43 +230,51 @@ async function handleGetMimeContent(args) {
           format: returnBase64 ? 'base64' : 'raw',
           headersOnly,
           contentType: parsed.headers['Content-Type'] || 'unknown',
-          messageId: parsed.headers['Message-ID'] || null
-        }
+          messageId: parsed.headers['Message-ID'] || null,
+        },
       };
     } catch (error) {
       console.error(`Error getting MIME content: ${error.message}`);
 
       if (error.message.includes("doesn't belong to the targeted mailbox")) {
         return {
-          content: [{
-            type: "text",
-            text: `The email ID seems invalid or doesn't belong to your mailbox.`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `The email ID seems invalid or doesn't belong to your mailbox.`,
+            },
+          ],
         };
       }
 
       return {
-        content: [{
-          type: "text",
-          text: `Failed to get MIME content: ${error.message}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Failed to get MIME content: ${error.message}`,
+          },
+        ],
       };
     }
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error accessing email: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error accessing email: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -257,5 +282,5 @@ async function handleGetMimeContent(args) {
 module.exports = {
   handleGetMimeContent,
   parseMimeHeaders,
-  getMimeStats
+  getMimeStats,
 };

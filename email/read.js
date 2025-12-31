@@ -3,10 +3,13 @@
  *
  * Token-efficient implementation with outputVerbosity support and Markdown formatting.
  */
-const config = require('../config');
+const _config = require('../config'); // Reserved for future use
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
-const { formatEmailContent, VERBOSITY } = require('../utils/response-formatter');
+const {
+  formatEmailContent,
+  VERBOSITY,
+} = require('../utils/response-formatter');
 const { getEmailFields } = require('../utils/field-presets');
 
 /**
@@ -17,16 +20,16 @@ const { getEmailFields } = require('../utils/field-presets');
  */
 function getReadFieldPreset(verbosity, includeHeaders) {
   if (includeHeaders) {
-    return 'forensic';  // Includes internetMessageHeaders
+    return 'forensic'; // Includes internetMessageHeaders
   }
   switch (verbosity) {
     case VERBOSITY.MINIMAL:
-      return 'list';    // Basic fields only
+      return 'list'; // Basic fields only
     case VERBOSITY.FULL:
-      return 'read';    // Full read fields
+      return 'read'; // Full read fields
     case VERBOSITY.STANDARD:
     default:
-      return 'read';    // Standard uses full read fields
+      return 'read'; // Standard uses full read fields
   }
 }
 
@@ -45,10 +48,12 @@ async function handleReadEmail(args) {
 
   if (!emailId) {
     return {
-      content: [{
-        type: "text",
-        text: "Email ID is required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Email ID is required.',
+        },
+      ],
     };
   }
 
@@ -63,38 +68,48 @@ async function handleReadEmail(args) {
     // Make API call to get email details
     const endpoint = `me/messages/${encodeURIComponent(emailId)}`;
     const queryParams = {
-      $select: selectFields
+      $select: selectFields,
     };
 
     try {
-      const email = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+      const email = await callGraphAPI(
+        accessToken,
+        'GET',
+        endpoint,
+        null,
+        queryParams
+      );
 
       if (!email) {
         return {
-          content: [{
-            type: "text",
-            text: `Email with ID ${emailId} not found.`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `Email with ID ${emailId} not found.`,
+            },
+          ],
         };
       }
 
       // Format using shared formatter (returns Markdown)
       const formattedOutput = formatEmailContent(email, verbosity, {
         includeHeaders: includeHeaders,
-        includeAllHeaders: false  // Only important headers by default
+        includeAllHeaders: false, // Only important headers by default
       });
 
       return {
-        content: [{
-          type: "text",
-          text: formattedOutput
-        }],
+        content: [
+          {
+            type: 'text',
+            text: formattedOutput,
+          },
+        ],
         _meta: {
           emailId: email.id,
           conversationId: email.conversationId,
           internetMessageId: email.internetMessageId,
-          verbosity: verbosity
-        }
+          verbosity: verbosity,
+        },
       };
     } catch (error) {
       console.error(`Error reading email: ${error.message}`);
@@ -102,35 +117,43 @@ async function handleReadEmail(args) {
       // Improved error handling with more specific messages
       if (error.message.includes("doesn't belong to the targeted mailbox")) {
         return {
-          content: [{
-            type: "text",
-            text: `The email ID seems invalid or doesn't belong to your mailbox. Please try with a different email ID.`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `The email ID seems invalid or doesn't belong to your mailbox. Please try with a different email ID.`,
+            },
+          ],
         };
       } else {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to read email: ${error.message}`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `Failed to read email: ${error.message}`,
+            },
+          ],
         };
       }
     }
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error accessing email: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error accessing email: ${error.message}`,
+        },
+      ],
     };
   }
 }

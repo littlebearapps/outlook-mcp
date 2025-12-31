@@ -14,10 +14,12 @@ async function handleCancelEvent(args) {
 
   if (!eventId) {
     return {
-      content: [{
-        type: "text",
-        text: "Event ID is required to cancel an event."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Event ID is required to cancel an event.',
+        },
+      ],
     };
   }
 
@@ -30,33 +32,39 @@ async function handleCancelEvent(args) {
 
     // Request body
     const body = {
-      comment: comment || "Cancelled via API"
+      comment: comment || 'Cancelled via API',
     };
 
     // Make API call
     await callGraphAPI(accessToken, 'POST', endpoint, body);
 
     return {
-      content: [{
-        type: "text",
-        text: `Event with ID ${eventId} has been successfully cancelled.`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Event with ID ${eventId} has been successfully cancelled.`,
+        },
+      ],
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error cancelling event: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error cancelling event: ${error.message}`,
+        },
+      ],
     };
   }
 }

@@ -3,11 +3,15 @@
  *
  * Token-efficient implementation with outputVerbosity support and Markdown formatting.
  */
-const config = require('../config');
+const _config = require('../config'); // Reserved for future use
 const { callGraphAPI, callGraphAPIPaginated } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 const { resolveFolderPath } = require('./folder-utils');
-const { formatEmailList, VERBOSITY, DEFAULT_LIMITS } = require('../utils/response-formatter');
+const {
+  formatEmailList,
+  VERBOSITY,
+  DEFAULT_LIMITS,
+} = require('../utils/response-formatter');
 const { getEmailFields } = require('../utils/field-presets');
 
 /**
@@ -20,7 +24,7 @@ const { getEmailFields } = require('../utils/field-presets');
  * @returns {object} - MCP response with Markdown formatted content
  */
 async function handleSearchEmails(args) {
-  const folder = args.folder || "inbox";
+  const folder = args.folder || 'inbox';
   const requestedCount = args.count || DEFAULT_LIMITS.searchEmails; // Default 10
   const verbosity = args.outputVerbosity || VERBOSITY.STANDARD;
   const query = args.query || '';
@@ -35,7 +39,9 @@ async function handleSearchEmails(args) {
   const kqlQuery = args.kqlQuery || ''; // Raw KQL for advanced users
 
   // Select fields based on verbosity
-  const selectFields = getEmailFields(verbosity === VERBOSITY.FULL ? 'search' : 'list');
+  const selectFields = getEmailFields(
+    verbosity === VERBOSITY.FULL ? 'search' : 'list'
+  );
 
   try {
     // Get access token
@@ -66,19 +72,23 @@ async function handleSearchEmails(args) {
     // Handle authentication errors
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     // General error response
     return {
-      content: [{
-        type: "text",
-        text: `Error searching emails: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error searching emails: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -93,7 +103,14 @@ async function handleSearchEmails(args) {
  * @param {string} selectFields - Comma-separated field list for $select
  * @returns {Promise<object>} - Search results
  */
-async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms, maxCount, selectFields) {
+async function progressiveSearch(
+  endpoint,
+  accessToken,
+  searchTerms,
+  filterTerms,
+  maxCount,
+  selectFields
+) {
   // Track search strategies attempted
   const searchAttempts = [];
 
@@ -101,17 +118,25 @@ async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms
   if (searchTerms.kqlQuery) {
     try {
       console.error(`Attempting raw KQL search: "${searchTerms.kqlQuery}"`);
-      searchAttempts.push("raw-kql");
+      searchAttempts.push('raw-kql');
 
       const kqlParams = {
         $top: Math.min(50, maxCount),
         $select: selectFields,
-        $search: `"${searchTerms.kqlQuery}"`
+        $search: `"${searchTerms.kqlQuery}"`,
       };
 
-      const response = await callGraphAPIPaginated(accessToken, 'GET', endpoint, kqlParams, maxCount);
+      const response = await callGraphAPIPaginated(
+        accessToken,
+        'GET',
+        endpoint,
+        kqlParams,
+        maxCount
+      );
       if (response.value && response.value.length > 0) {
-        console.error(`Raw KQL search successful: found ${response.value.length} results`);
+        console.error(
+          `Raw KQL search successful: found ${response.value.length} results`
+        );
         return response;
       }
     } catch (error) {
@@ -121,13 +146,26 @@ async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms
 
   // 1. Try combined search (most specific)
   try {
-    const params = buildSearchParams(searchTerms, filterTerms, Math.min(50, maxCount), selectFields);
-    console.error("Attempting combined search with params:", params);
-    searchAttempts.push("combined-search");
+    const params = buildSearchParams(
+      searchTerms,
+      filterTerms,
+      Math.min(50, maxCount),
+      selectFields
+    );
+    console.error('Attempting combined search with params:', params);
+    searchAttempts.push('combined-search');
 
-    const response = await callGraphAPIPaginated(accessToken, 'GET', endpoint, params, maxCount);
+    const response = await callGraphAPIPaginated(
+      accessToken,
+      'GET',
+      endpoint,
+      params,
+      maxCount
+    );
     if (response.value && response.value.length > 0) {
-      console.error(`Combined search successful: found ${response.value.length} results`);
+      console.error(
+        `Combined search successful: found ${response.value.length} results`
+      );
       return response;
     }
   } catch (error) {
@@ -140,12 +178,14 @@ async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms
   for (const term of searchPriority) {
     if (searchTerms[term]) {
       try {
-        console.error(`Attempting search with only ${term}: "${searchTerms[term]}"`);
+        console.error(
+          `Attempting search with only ${term}: "${searchTerms[term]}"`
+        );
         searchAttempts.push(`single-term-${term}`);
 
         const simplifiedParams = {
           $top: Math.min(50, maxCount),
-          $select: selectFields
+          $select: selectFields,
         };
 
         // Use $filter for from/to (more reliable), $search for subject/query
@@ -173,9 +213,17 @@ async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms
         // Add boolean filters if applicable
         addBooleanFilters(simplifiedParams, filterTerms);
 
-        const response = await callGraphAPIPaginated(accessToken, 'GET', endpoint, simplifiedParams, maxCount);
+        const response = await callGraphAPIPaginated(
+          accessToken,
+          'GET',
+          endpoint,
+          simplifiedParams,
+          maxCount
+        );
         if (response.value && response.value.length > 0) {
-          console.error(`Search with ${term} successful: found ${response.value.length} results`);
+          console.error(
+            `Search with ${term} successful: found ${response.value.length} results`
+          );
           return response;
         }
       } catch (error) {
@@ -187,20 +235,28 @@ async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms
   // 3. Try with only boolean filters
   if (filterTerms.hasAttachments === true || filterTerms.unreadOnly === true) {
     try {
-      console.error("Attempting search with only boolean filters");
-      searchAttempts.push("boolean-filters-only");
+      console.error('Attempting search with only boolean filters');
+      searchAttempts.push('boolean-filters-only');
 
       const filterOnlyParams = {
         $top: Math.min(50, maxCount),
         $select: selectFields,
-        $orderby: 'receivedDateTime desc'
+        $orderby: 'receivedDateTime desc',
       };
 
       // Add the boolean filters
       addBooleanFilters(filterOnlyParams, filterTerms);
 
-      const response = await callGraphAPIPaginated(accessToken, 'GET', endpoint, filterOnlyParams, maxCount);
-      console.error(`Boolean filter search found ${response.value?.length || 0} results`);
+      const response = await callGraphAPIPaginated(
+        accessToken,
+        'GET',
+        endpoint,
+        filterOnlyParams,
+        maxCount
+      );
+      console.error(
+        `Boolean filter search found ${response.value?.length || 0} results`
+      );
       return response;
     } catch (error) {
       console.error(`Boolean filter search failed: ${error.message}`);
@@ -208,24 +264,32 @@ async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms
   }
 
   // 4. Final fallback: just get recent emails with pagination
-  console.error("All search strategies failed, falling back to recent emails");
-  searchAttempts.push("recent-emails");
+  console.error('All search strategies failed, falling back to recent emails');
+  searchAttempts.push('recent-emails');
 
   const basicParams = {
     $top: Math.min(50, maxCount),
     $select: selectFields,
-    $orderby: 'receivedDateTime desc'
+    $orderby: 'receivedDateTime desc',
   };
 
-  const response = await callGraphAPIPaginated(accessToken, 'GET', endpoint, basicParams, maxCount);
-  console.error(`Fallback to recent emails found ${response.value?.length || 0} results`);
+  const response = await callGraphAPIPaginated(
+    accessToken,
+    'GET',
+    endpoint,
+    basicParams,
+    maxCount
+  );
+  console.error(
+    `Fallback to recent emails found ${response.value?.length || 0} results`
+  );
 
   // Add a note to the response about the search attempts
   response._searchInfo = {
     attemptsCount: searchAttempts.length,
     strategies: searchAttempts,
     originalTerms: searchTerms,
-    filterTerms: filterTerms
+    filterTerms: filterTerms,
   };
 
   return response;
@@ -244,7 +308,7 @@ async function progressiveSearch(endpoint, accessToken, searchTerms, filterTerms
 function buildSearchParams(searchTerms, filterTerms, count, selectFields) {
   const params = {
     $top: count,
-    $select: selectFields
+    $select: selectFields,
   };
 
   // Track if we're using email address filters (which are incompatible with $orderby)
@@ -274,18 +338,26 @@ function buildSearchParams(searchTerms, filterTerms, count, selectFields) {
   if (searchTerms.from) {
     usesEmailFilter = true;
     if (searchTerms.from.includes('@')) {
-      filterConditions.push(`from/emailAddress/address eq '${searchTerms.from}'`);
+      filterConditions.push(
+        `from/emailAddress/address eq '${searchTerms.from}'`
+      );
     } else {
-      filterConditions.push(`contains(from/emailAddress/name, '${searchTerms.from}')`);
+      filterConditions.push(
+        `contains(from/emailAddress/name, '${searchTerms.from}')`
+      );
     }
   }
 
   if (searchTerms.to) {
     usesEmailFilter = true;
     if (searchTerms.to.includes('@')) {
-      filterConditions.push(`toRecipients/any(r: r/emailAddress/address eq '${searchTerms.to}')`);
+      filterConditions.push(
+        `toRecipients/any(r: r/emailAddress/address eq '${searchTerms.to}')`
+      );
     } else {
-      filterConditions.push(`toRecipients/any(r: contains(r/emailAddress/name, '${searchTerms.to}'))`);
+      filterConditions.push(
+        `toRecipients/any(r: contains(r/emailAddress/name, '${searchTerms.to}'))`
+      );
     }
   }
 
@@ -313,7 +385,9 @@ function buildSearchParams(searchTerms, filterTerms, count, selectFields) {
       const beforeDate = new Date(filterTerms.receivedBefore).toISOString();
       filterConditions.push(`receivedDateTime le ${beforeDate}`);
     } catch (e) {
-      console.error(`Invalid receivedBefore date: ${filterTerms.receivedBefore}`);
+      console.error(
+        `Invalid receivedBefore date: ${filterTerms.receivedBefore}`
+      );
     }
   }
 
@@ -361,7 +435,9 @@ function addBooleanFilters(params, filterTerms) {
       const beforeDate = new Date(filterTerms.receivedBefore).toISOString();
       filterConditions.push(`receivedDateTime le ${beforeDate}`);
     } catch (e) {
-      console.error(`Invalid receivedBefore date: ${filterTerms.receivedBefore}`);
+      console.error(
+        `Invalid receivedBefore date: ${filterTerms.receivedBefore}`
+      );
     }
   }
 
@@ -381,10 +457,12 @@ function addBooleanFilters(params, filterTerms) {
 function formatSearchResults(response, folder, verbosity) {
   if (!response.value || response.value.length === 0) {
     return {
-      content: [{
-        type: "text",
-        text: `No emails found matching your search criteria.`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `No emails found matching your search criteria.`,
+        },
+      ],
     };
   }
 
@@ -393,25 +471,35 @@ function formatSearchResults(response, folder, verbosity) {
     returned: response.value.length,
     totalAvailable: response['@odata.count'] || null,
     hasMore: !!response['@odata.nextLink'],
-    verbosity: verbosity
+    verbosity: verbosity,
   };
 
   // Add search strategy info if available (for debugging)
   let searchNote = '';
   if (response._searchInfo) {
-    const strategy = response._searchInfo.strategies[response._searchInfo.strategies.length - 1];
+    const strategy =
+      response._searchInfo.strategies[
+        response._searchInfo.strategies.length - 1
+      ];
     searchNote = `\n\n_Search strategy: ${strategy}_`;
   }
 
   // Format results using shared formatter
-  const formattedOutput = formatEmailList(response.value, `Search Results (${folder})`, verbosity, meta);
+  const formattedOutput = formatEmailList(
+    response.value,
+    `Search Results (${folder})`,
+    verbosity,
+    meta
+  );
 
   return {
-    content: [{
-      type: "text",
-      text: formattedOutput + searchNote
-    }],
-    _meta: meta
+    content: [
+      {
+        type: 'text',
+        text: formattedOutput + searchNote,
+      },
+    ],
+    _meta: meta,
   };
 }
 
@@ -428,10 +516,12 @@ async function handleSearchByMessageId(args) {
 
   if (!messageId) {
     return {
-      content: [{
-        type: "text",
-        text: "Message-ID is required. Provide the full Message-ID header value (e.g., <abc123@example.com>)"
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Message-ID is required. Provide the full Message-ID header value (e.g., <abc123@example.com>)',
+        },
+      ],
     };
   }
 
@@ -439,7 +529,9 @@ async function handleSearchByMessageId(args) {
     const accessToken = await ensureAuthenticated();
 
     // Search across all folders for the Message-ID
-    const selectFields = getEmailFields(verbosity === VERBOSITY.FULL ? 'forensic' : 'read');
+    const selectFields = getEmailFields(
+      verbosity === VERBOSITY.FULL ? 'forensic' : 'read'
+    );
 
     // Build filter - need to escape the Message-ID properly
     // Graph API expects: internetMessageId eq '<value>'
@@ -448,7 +540,7 @@ async function handleSearchByMessageId(args) {
     const params = {
       $filter: `internetMessageId eq '${escapedMessageId}'`,
       $select: selectFields,
-      $top: '10' // Usually only one match, but allow for edge cases
+      $top: '10', // Usually only one match, but allow for edge cases
     };
 
     console.error(`Searching for Message-ID: ${messageId}`);
@@ -465,10 +557,12 @@ async function handleSearchByMessageId(args) {
 
     if (emails.length === 0) {
       return {
-        content: [{
-          type: "text",
-          text: `## No Email Found\n\nNo email found with Message-ID: \`${messageId}\`\n\n**Tips:**\n- Ensure the full Message-ID is provided including angle brackets\n- Message-ID format: \`<unique-id@domain.com>\`\n- The email may have been deleted or not yet synced`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `## No Email Found\n\nNo email found with Message-ID: \`${messageId}\`\n\n**Tips:**\n- Ensure the full Message-ID is provided including angle brackets\n- Message-ID format: \`<unique-id@domain.com>\`\n- The email may have been deleted or not yet synced`,
+          },
+        ],
       };
     }
 
@@ -481,37 +575,42 @@ async function handleSearchByMessageId(args) {
     resultText += formatEmailList(emails, 'Match', verbosity);
 
     return {
-      content: [{
-        type: "text",
-        text: resultText
-      }],
+      content: [
+        {
+          type: 'text',
+          text: resultText,
+        },
+      ],
       _meta: {
         messageId: messageId,
         matchCount: emails.length,
-        emailIds: emails.map(e => e.id)
-      }
+        emailIds: emails.map((e) => e.id),
+      },
     };
-
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error searching by Message-ID: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error searching by Message-ID: ${error.message}`,
+        },
+      ],
     };
   }
 }
 
 module.exports = {
   handleSearchEmails,
-  handleSearchByMessageId
+  handleSearchByMessageId,
 };

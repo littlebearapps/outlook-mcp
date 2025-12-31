@@ -3,6 +3,8 @@
  */
 const handleListRules = require('./list');
 const handleCreateRule = require('./create');
+const { callGraphAPI } = require('../utils/graph-api');
+const { ensureAuthenticated } = require('../auth');
 
 // Import getInboxRules for the edit sequence tool
 const { getInboxRules } = require('./list');
@@ -14,74 +16,86 @@ const { getInboxRules } = require('./list');
  */
 async function handleEditRuleSequence(args) {
   const { ruleName, sequence } = args;
-  
+
   if (!ruleName) {
     return {
-      content: [{ 
-        type: "text", 
-        text: "Rule name is required. Please specify the exact name of an existing rule."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Rule name is required. Please specify the exact name of an existing rule.',
+        },
+      ],
     };
   }
-  
+
   if (!sequence || isNaN(sequence) || sequence < 1) {
     return {
-      content: [{ 
-        type: "text", 
-        text: "A positive sequence number is required. Lower numbers run first (higher priority)."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'A positive sequence number is required. Lower numbers run first (higher priority).',
+        },
+      ],
     };
   }
-  
+
   try {
     // Get access token
     const accessToken = await ensureAuthenticated();
-    
+
     // Get all rules
     const rules = await getInboxRules(accessToken);
-    
+
     // Find the rule by name
-    const rule = rules.find(r => r.displayName === ruleName);
+    const rule = rules.find((r) => r.displayName === ruleName);
     if (!rule) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Rule with name "${ruleName}" not found.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Rule with name "${ruleName}" not found.`,
+          },
+        ],
       };
     }
-    
+
     // Update the rule sequence
-    const updateResult = await callGraphAPI(
+    const _updateResult = await callGraphAPI(
       accessToken,
       'PATCH',
       `me/mailFolders/inbox/messageRules/${rule.id}`,
       {
-        sequence: sequence
+        sequence: sequence,
       }
     );
-    
+
     return {
-      content: [{ 
-        type: "text", 
-        text: `Successfully updated the sequence of rule "${ruleName}" to ${sequence}.`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Successfully updated the sequence of rule "${ruleName}" to ${sequence}.`,
+        },
+      ],
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{ 
-          type: "text", 
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
-    
+
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error updating rule sequence: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error updating rule sequence: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -89,87 +103,91 @@ async function handleEditRuleSequence(args) {
 // Rules management tool definitions
 const rulesTools = [
   {
-    name: "list-rules",
-    description: "Lists inbox rules in your Outlook account",
+    name: 'list-rules',
+    description: 'Lists inbox rules in your Outlook account',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         includeDetails: {
-          type: "boolean",
-          description: "Include detailed rule conditions and actions"
-        }
+          type: 'boolean',
+          description: 'Include detailed rule conditions and actions',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleListRules
+    handler: handleListRules,
   },
   {
-    name: "create-rule",
-    description: "Creates a new inbox rule",
+    name: 'create-rule',
+    description: 'Creates a new inbox rule',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         name: {
-          type: "string",
-          description: "Name of the rule to create"
+          type: 'string',
+          description: 'Name of the rule to create',
         },
         fromAddresses: {
-          type: "string",
-          description: "Comma-separated list of sender email addresses for the rule"
+          type: 'string',
+          description:
+            'Comma-separated list of sender email addresses for the rule',
         },
         containsSubject: {
-          type: "string",
-          description: "Subject text the email must contain"
+          type: 'string',
+          description: 'Subject text the email must contain',
         },
         hasAttachments: {
-          type: "boolean",
-          description: "Whether the rule applies to emails with attachments"
+          type: 'boolean',
+          description: 'Whether the rule applies to emails with attachments',
         },
         moveToFolder: {
-          type: "string",
-          description: "Name of the folder to move matching emails to"
+          type: 'string',
+          description: 'Name of the folder to move matching emails to',
         },
         markAsRead: {
-          type: "boolean", 
-          description: "Whether to mark matching emails as read"
+          type: 'boolean',
+          description: 'Whether to mark matching emails as read',
         },
         isEnabled: {
-          type: "boolean",
-          description: "Whether the rule should be enabled after creation (default: true)"
+          type: 'boolean',
+          description:
+            'Whether the rule should be enabled after creation (default: true)',
         },
         sequence: {
-          type: "number",
-          description: "Order in which the rule is executed (lower numbers run first, default: 100)"
-        }
+          type: 'number',
+          description:
+            'Order in which the rule is executed (lower numbers run first, default: 100)',
+        },
       },
-      required: ["name"]
+      required: ['name'],
     },
-    handler: handleCreateRule
+    handler: handleCreateRule,
   },
   {
-    name: "edit-rule-sequence",
-    description: "Changes the execution order of an existing inbox rule",
+    name: 'edit-rule-sequence',
+    description: 'Changes the execution order of an existing inbox rule',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         ruleName: {
-          type: "string",
-          description: "Name of the rule to modify"
+          type: 'string',
+          description: 'Name of the rule to modify',
         },
         sequence: {
-          type: "number",
-          description: "New sequence value for the rule (lower numbers run first)"
-        }
+          type: 'number',
+          description:
+            'New sequence value for the rule (lower numbers run first)',
+        },
       },
-      required: ["ruleName", "sequence"]
+      required: ['ruleName', 'sequence'],
     },
-    handler: handleEditRuleSequence
-  }
+    handler: handleEditRuleSequence,
+  },
 ];
 
 module.exports = {
   rulesTools,
   handleListRules,
   handleCreateRule,
-  handleEditRuleSequence
+  handleEditRuleSequence,
 };

@@ -14,10 +14,12 @@ async function handleDeclineEvent(args) {
 
   if (!eventId) {
     return {
-      content: [{
-        type: "text",
-        text: "Event ID is required to decline an event."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Event ID is required to decline an event.',
+        },
+      ],
     };
   }
 
@@ -30,33 +32,39 @@ async function handleDeclineEvent(args) {
 
     // Request body
     const body = {
-      comment: comment || "Declined via API"
+      comment: comment || 'Declined via API',
     };
 
     // Make API call
     await callGraphAPI(accessToken, 'POST', endpoint, body);
 
     return {
-      content: [{
-        type: "text",
-        text: `Event with ID ${eventId} has been successfully declined.`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Event with ID ${eventId} has been successfully declined.`,
+        },
+      ],
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error declining event: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error declining event: ${error.message}`,
+        },
+      ],
     };
   }
 }

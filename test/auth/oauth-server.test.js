@@ -1,6 +1,9 @@
 const express = require('express');
 const request = require('supertest');
-const { setupOAuthRoutes, createAuthConfig } = require('../../auth/oauth-server');
+const {
+  setupOAuthRoutes,
+  createAuthConfig,
+} = require('../../auth/oauth-server');
 const TokenStorage = require('../../auth/token-storage');
 
 jest.mock('../../auth/token-storage'); // Mock TokenStorage class
@@ -23,15 +26,22 @@ const mockTokenStorageInstance = {
 
 describe('OAuth Server Routes', () => {
   let app;
+  let tokenStorageInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    TokenStorage.mockImplementation(() => mockTokenStorageInstance); // Return the mocked instance
+    TokenStorage.mockImplementation(function () {
+      // Copy mock methods to this instance
+      this.exchangeCodeForTokens =
+        mockTokenStorageInstance.exchangeCodeForTokens;
+      this.getValidAccessToken = mockTokenStorageInstance.getValidAccessToken;
+      this.getExpiryTime = mockTokenStorageInstance.getExpiryTime;
+    });
 
     app = express();
-    // It's important that the TokenStorage instance passed to setupOAuthRoutes is the one we can control.
-    // For these tests, we don't need a real TokenStorage, so we pass the mock.
-    setupOAuthRoutes(app, mockTokenStorageInstance, mockAuthConfig);
+    // Create an instance from the mocked class to pass instanceof check
+    tokenStorageInstance = new TokenStorage();
+    setupOAuthRoutes(app, tokenStorageInstance, mockAuthConfig);
   });
 
   describe('GET /auth', () => {
@@ -40,12 +50,20 @@ describe('OAuth Server Routes', () => {
       expect(response.status).toBe(302); // Redirect
 
       const redirectUrl = new URL(response.headers.location);
-      expect(redirectUrl.origin).toBe(mockAuthConfig.authEndpoint.split('/authorize')[0]);
+      expect(redirectUrl.origin).toBe(
+        mockAuthConfig.authEndpoint.split('/authorize')[0]
+      );
       expect(redirectUrl.pathname).toBe('/authorize');
-      expect(redirectUrl.searchParams.get('client_id')).toBe(mockAuthConfig.clientId);
+      expect(redirectUrl.searchParams.get('client_id')).toBe(
+        mockAuthConfig.clientId
+      );
       expect(redirectUrl.searchParams.get('response_type')).toBe('code');
-      expect(redirectUrl.searchParams.get('redirect_uri')).toBe(mockAuthConfig.redirectUri);
-      expect(redirectUrl.searchParams.get('scope')).toBe(mockAuthConfig.scopes.join(' '));
+      expect(redirectUrl.searchParams.get('redirect_uri')).toBe(
+        mockAuthConfig.redirectUri
+      );
+      expect(redirectUrl.searchParams.get('scope')).toBe(
+        mockAuthConfig.scopes.join(' ')
+      );
       expect(redirectUrl.searchParams.get('response_mode')).toBe('query');
       expect(redirectUrl.searchParams.get('state')).toBeDefined();
       expect(redirectUrl.searchParams.get('state').length).toBe(32); // crypto.randomBytes(16).toString('hex')
@@ -55,13 +73,16 @@ describe('OAuth Server Routes', () => {
       const tempApp = express();
       // Create a new authConfig without clientId for this specific test
       const noClientIdAuthConfig = { ...mockAuthConfig, clientId: null };
-      setupOAuthRoutes(tempApp, mockTokenStorageInstance, noClientIdAuthConfig);
+      const tempTokenStorage = new TokenStorage();
+      setupOAuthRoutes(tempApp, tempTokenStorage, noClientIdAuthConfig);
 
       const response = await request(tempApp).get('/auth');
       expect(response.status).toBe(500);
       expect(response.text).toContain('Authorization Failed');
       expect(response.text).toContain('Error:</strong> Configuration Error');
-      expect(response.text).toContain('Description:</strong> Client ID is not configured.');
+      expect(response.text).toContain(
+        'Description:</strong> Client ID is not configured.'
+      );
     });
   });
 
@@ -70,14 +91,20 @@ describe('OAuth Server Routes', () => {
     const mockState = 'mock_state_value'; // Example state
 
     it('should exchange code for tokens and return success HTML', async () => {
-      mockTokenStorageInstance.exchangeCodeForTokens.mockResolvedValue({ access_token: 'mock_access_token' });
+      mockTokenStorageInstance.exchangeCodeForTokens.mockResolvedValue({
+        access_token: 'mock_access_token',
+      });
 
       // Note: State validation is mocked/skipped here as session management is outside this module.
       // In a real app, the 'state' would be generated in /auth, stored (e.g. session),
       // and verified here. The test passes 'state' to simulate it coming from provider.
-      const response = await request(app).get(`/auth/callback?code=${mockAuthCode}&state=${mockState}`);
+      const response = await request(app).get(
+        `/auth/callback?code=${mockAuthCode}&state=${mockState}`
+      );
 
-      expect(mockTokenStorageInstance.exchangeCodeForTokens).toHaveBeenCalledWith(mockAuthCode);
+      expect(
+        mockTokenStorageInstance.exchangeCodeForTokens
+      ).toHaveBeenCalledWith(mockAuthCode);
       expect(response.status).toBe(200);
       expect(response.text).toContain('Authentication Successful');
     });
@@ -85,21 +112,33 @@ describe('OAuth Server Routes', () => {
     it('should return 400 and error HTML if OAuth provider returns an error', async () => {
       const oauthError = 'access_denied';
       const oauthErrorDesc = 'User denied access';
-      const response = await request(app).get(`/auth/callback?error=${oauthError}&error_description=${oauthErrorDesc}&state=${mockState}`);
+      const response = await request(app).get(
+        `/auth/callback?error=${oauthError}&error_description=${oauthErrorDesc}&state=${mockState}`
+      );
 
       expect(response.status).toBe(400);
       expect(response.text).toContain('Authorization Failed');
       expect(response.text).toContain(`Error:</strong> ${oauthError}`);
-      expect(response.text).toContain(`Description:</strong> ${oauthErrorDesc}`);
-      expect(mockTokenStorageInstance.exchangeCodeForTokens).not.toHaveBeenCalled();
+      expect(response.text).toContain(
+        `Description:</strong> ${oauthErrorDesc}`
+      );
+      expect(
+        mockTokenStorageInstance.exchangeCodeForTokens
+      ).not.toHaveBeenCalled();
     });
 
     it('should return 400 if no code is provided', async () => {
-      const response = await request(app).get(`/auth/callback?state=${mockState}`);
+      const response = await request(app).get(
+        `/auth/callback?state=${mockState}`
+      );
       expect(response.status).toBe(400);
       expect(response.text).toContain('Authorization Failed');
-      expect(response.text).toContain('Error:</strong> Missing Authorization Code');
-      expect(mockTokenStorageInstance.exchangeCodeForTokens).not.toHaveBeenCalled();
+      expect(response.text).toContain(
+        'Error:</strong> Missing Authorization Code'
+      );
+      expect(
+        mockTokenStorageInstance.exchangeCodeForTokens
+      ).not.toHaveBeenCalled();
     });
 
     // Test for state missing - module currently warns but doesn't block.
@@ -117,27 +156,42 @@ describe('OAuth Server Routes', () => {
 
     it('should return 400 if state is missing from callback', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      const response = await request(app).get(`/auth/callback?code=${mockAuthCode}`); // No state
+      const response = await request(app).get(
+        `/auth/callback?code=${mockAuthCode}`
+      ); // No state
 
       expect(response.status).toBe(400);
       expect(response.text).toContain('Authorization Failed');
-      expect(response.text).toContain('Error:</strong> Missing State Parameter');
-      expect(response.text).toContain('The state parameter was missing from the OAuth callback.');
-      expect(mockTokenStorageInstance.exchangeCodeForTokens).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith("OAuth callback received without a 'state' parameter. Rejecting request to prevent potential CSRF attack.");
+      expect(response.text).toContain(
+        'Error:</strong> Missing State Parameter'
+      );
+      expect(response.text).toContain(
+        'The state parameter was missing from the OAuth callback.'
+      );
+      expect(
+        mockTokenStorageInstance.exchangeCodeForTokens
+      ).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "OAuth callback received without a 'state' parameter. Rejecting request to prevent potential CSRF attack."
+      );
       consoleErrorSpy.mockRestore();
     });
 
-
     it('should return 500 if token exchange fails', async () => {
       const exchangeError = new Error('Token exchange process failed');
-      mockTokenStorageInstance.exchangeCodeForTokens.mockRejectedValue(exchangeError);
+      mockTokenStorageInstance.exchangeCodeForTokens.mockRejectedValue(
+        exchangeError
+      );
 
-      const response = await request(app).get(`/auth/callback?code=${mockAuthCode}&state=${mockState}`);
+      const response = await request(app).get(
+        `/auth/callback?code=${mockAuthCode}&state=${mockState}`
+      );
 
       expect(response.status).toBe(500);
       expect(response.text).toContain('Token Exchange Failed');
-      expect(response.text).toContain(`Error:</strong> ${exchangeError.message}`);
+      expect(response.text).toContain(
+        `Error:</strong> ${exchangeError.message}`
+      );
     });
   });
 
@@ -145,7 +199,9 @@ describe('OAuth Server Routes', () => {
     it('should return valid status if token exists and is valid', async () => {
       const mockAccessToken = 'valid_token_123';
       const mockExpiry = Date.now() + 3600000; // 1 hour from now
-      mockTokenStorageInstance.getValidAccessToken.mockResolvedValue(mockAccessToken);
+      mockTokenStorageInstance.getValidAccessToken.mockResolvedValue(
+        mockAccessToken
+      );
       mockTokenStorageInstance.getExpiryTime.mockReturnValue(mockExpiry);
 
       const response = await request(app).get('/token-status');
@@ -153,7 +209,9 @@ describe('OAuth Server Routes', () => {
       expect(response.status).toBe(200);
       expect(response.text).toContain('Token Status');
       expect(response.text).toContain('Access token is valid.');
-      expect(response.text).toContain(`Expires at: ${new Date(mockExpiry).toLocaleString()}`);
+      expect(response.text).toContain(
+        `Expires at: ${new Date(mockExpiry).toLocaleString()}`
+      );
     });
 
     it('should return "no valid token" status if token is not found', async () => {
@@ -163,18 +221,24 @@ describe('OAuth Server Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.text).toContain('Token Status');
-      expect(response.text).toContain('No valid access token found. Please authenticate.');
+      expect(response.text).toContain(
+        'No valid access token found. Please authenticate.'
+      );
     });
 
     it('should return 500 if checking token status throws an error', async () => {
       const statusError = new Error('Failed to check token status');
-      mockTokenStorageInstance.getValidAccessToken.mockRejectedValue(statusError);
+      mockTokenStorageInstance.getValidAccessToken.mockRejectedValue(
+        statusError
+      );
 
       const response = await request(app).get('/token-status');
 
       expect(response.status).toBe(500);
       expect(response.text).toContain('Token Status');
-      expect(response.text).toContain(`Error checking token status: ${statusError.message}`);
+      expect(response.text).toContain(
+        `Error checking token status: ${statusError.message}`
+      );
     });
   });
 
@@ -182,46 +246,54 @@ describe('OAuth Server Routes', () => {
     const originalEnv = process.env;
 
     beforeEach(() => {
-        jest.resetModules(); // Important to clear module cache for process.env changes
-        process.env = { ...originalEnv }; // Make a copy
+      jest.resetModules(); // Important to clear module cache for process.env changes
+      process.env = { ...originalEnv }; // Make a copy
     });
 
     afterAll(() => {
-        process.env = originalEnv; // Restore original environment
+      process.env = originalEnv; // Restore original environment
     });
 
     it('should use default values if environment variables are not set', () => {
-        const config = createAuthConfig('TEST_PREFIX_'); // Use a prefix to avoid collision
-        expect(config.clientId).toBe('');
-        expect(config.clientSecret).toBe('');
-        expect(config.redirectUri).toBe('http://localhost:3333/auth/callback');
-        expect(config.scopes).toEqual(['offline_access', 'User.Read', 'Mail.Read']);
-        expect(config.tokenEndpoint).toBe('https://login.microsoftonline.com/common/oauth2/v2.0/token');
-        expect(config.authEndpoint).toBe('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
+      const config = createAuthConfig('TEST_PREFIX_'); // Use a prefix to avoid collision
+      expect(config.clientId).toBe('');
+      expect(config.clientSecret).toBe('');
+      expect(config.redirectUri).toBe('http://localhost:3333/auth/callback');
+      expect(config.scopes).toEqual([
+        'offline_access',
+        'User.Read',
+        'Mail.Read',
+      ]);
+      expect(config.tokenEndpoint).toBe(
+        'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+      );
+      expect(config.authEndpoint).toBe(
+        'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+      );
     });
 
     it('should use environment variables with specified prefix', () => {
-        process.env.MYAPP_CLIENT_ID = 'env_client_id';
-        process.env.MYAPP_CLIENT_SECRET = 'env_client_secret';
-        process.env.MYAPP_REDIRECT_URI = 'http://env.redirect/uri';
-        process.env.MYAPP_SCOPES = 'scope1 scope2';
-        process.env.MYAPP_TOKEN_ENDPOINT = 'http://env.token/endpoint';
-        process.env.MYAPP_AUTH_ENDPOINT = 'http://env.auth/endpoint';
+      process.env.MYAPP_CLIENT_ID = 'env_client_id';
+      process.env.MYAPP_CLIENT_SECRET = 'env_client_secret';
+      process.env.MYAPP_REDIRECT_URI = 'http://env.redirect/uri';
+      process.env.MYAPP_SCOPES = 'scope1 scope2';
+      process.env.MYAPP_TOKEN_ENDPOINT = 'http://env.token/endpoint';
+      process.env.MYAPP_AUTH_ENDPOINT = 'http://env.auth/endpoint';
 
-        const config = createAuthConfig('MYAPP_');
+      const config = createAuthConfig('MYAPP_');
 
-        expect(config.clientId).toBe('env_client_id');
-        expect(config.clientSecret).toBe('env_client_secret');
-        expect(config.redirectUri).toBe('http://env.redirect/uri');
-        expect(config.scopes).toEqual(['scope1', 'scope2']);
-        expect(config.tokenEndpoint).toBe('http://env.token/endpoint');
-        expect(config.authEndpoint).toBe('http://env.auth/endpoint');
+      expect(config.clientId).toBe('env_client_id');
+      expect(config.clientSecret).toBe('env_client_secret');
+      expect(config.redirectUri).toBe('http://env.redirect/uri');
+      expect(config.scopes).toEqual(['scope1', 'scope2']);
+      expect(config.tokenEndpoint).toBe('http://env.token/endpoint');
+      expect(config.authEndpoint).toBe('http://env.auth/endpoint');
     });
 
     it('should use default "MS_" prefix if none provided', () => {
-        process.env.MS_CLIENT_ID = 'ms_client_id_val';
-        const config = createAuthConfig(); // No prefix, defaults to MS_
-        expect(config.clientId).toBe('ms_client_id_val');
+      process.env.MS_CLIENT_ID = 'ms_client_id_val';
+      const config = createAuthConfig(); // No prefix, defaults to MS_
+      expect(config.clientId).toBe('ms_client_id_val');
     });
   });
 });

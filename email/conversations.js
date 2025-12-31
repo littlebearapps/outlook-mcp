@@ -5,10 +5,17 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { callGraphAPI, callGraphAPIRaw, callGraphAPIPaginated } = require('../utils/graph-api');
+const {
+  callGraphAPI,
+  callGraphAPIRaw,
+  callGraphAPIPaginated: _callGraphAPIPaginated,
+} = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 const { getEmailFields } = require('../utils/field-presets');
-const { formatEmailContent, VERBOSITY } = require('../utils/response-formatter');
+const {
+  formatEmailContent,
+  VERBOSITY,
+} = require('../utils/response-formatter');
 
 /**
  * Format a date for filenames
@@ -61,23 +68,29 @@ async function handleListConversations(args) {
       'conversationId',
       'conversationIndex',
       'isRead',
-      'bodyPreview'
+      'bodyPreview',
     ].join(',');
 
     const endpoint = `me/mailFolders/${folder}/messages`;
     const queryParams = {
       $select: selectFields,
       $orderby: 'receivedDateTime desc',
-      $top: 200  // Get more to group
+      $top: 200, // Get more to group
     };
 
-    const response = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+    const response = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      queryParams
+    );
     const messages = response.value || [];
 
     // Group by conversationId
     const conversations = new Map();
 
-    messages.forEach(msg => {
+    messages.forEach((msg) => {
       const convId = msg.conversationId;
       if (!conversations.has(convId)) {
         conversations.set(convId, {
@@ -87,7 +100,7 @@ async function handleListConversations(args) {
           participants: new Set(),
           firstDate: msg.receivedDateTime,
           lastDate: msg.receivedDateTime,
-          unreadCount: 0
+          unreadCount: 0,
         });
       }
 
@@ -119,35 +132,50 @@ async function handleListConversations(args) {
       output.push(`## ${index + 1}. ${conv.subject || '(no subject)'}`);
       output.push(`- **Messages**: ${conv.messages.length}`);
       output.push(`- **Unread**: ${conv.unreadCount}`);
-      output.push(`- **Participants**: ${Array.from(conv.participants).slice(0, 5).join(', ')}${conv.participants.size > 5 ? '...' : ''}`);
-      output.push(`- **Date Range**: ${formatDateForFilename(conv.firstDate)} → ${formatDateForFilename(conv.lastDate)}`);
+      output.push(
+        `- **Participants**: ${Array.from(conv.participants).slice(0, 5).join(', ')}${conv.participants.size > 5 ? '...' : ''}`
+      );
+      output.push(
+        `- **Date Range**: ${formatDateForFilename(conv.firstDate)} → ${formatDateForFilename(conv.lastDate)}`
+      );
       output.push(`- **Conversation ID**: \`${conv.conversationId}\``);
 
       if (verbosity === VERBOSITY.FULL && conv.messages.length > 0) {
-        output.push(`\n**Latest Preview**: ${conv.messages[0].bodyPreview?.substring(0, 100) || ''}...`);
+        output.push(
+          `\n**Latest Preview**: ${conv.messages[0].bodyPreview?.substring(0, 100) || ''}...`
+        );
       }
       output.push('');
     });
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
         folder,
         conversationCount: conversationList.length,
-        totalMessagesScanned: messages.length
-      }
+        totalMessagesScanned: messages.length,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{ type: "text", text: `Error listing conversations: ${error.message}` }]
+      content: [
+        { type: 'text', text: `Error listing conversations: ${error.message}` },
+      ],
     };
   }
 }
@@ -167,7 +195,7 @@ async function handleGetConversation(args) {
 
   if (!conversationId) {
     return {
-      content: [{ type: "text", text: "Conversation ID is required." }]
+      content: [{ type: 'text', text: 'Conversation ID is required.' }],
     };
   }
 
@@ -184,15 +212,26 @@ async function handleGetConversation(args) {
       $select: selectFields,
       $filter: `conversationId eq '${conversationId}'`,
       $orderby: 'receivedDateTime asc',
-      $top: 100
+      $top: 100,
     };
 
-    const response = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+    const response = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      queryParams
+    );
     const messages = response.value || [];
 
     if (messages.length === 0) {
       return {
-        content: [{ type: "text", text: `No messages found for conversation ID: ${conversationId}` }]
+        content: [
+          {
+            type: 'text',
+            text: `No messages found for conversation ID: ${conversationId}`,
+          },
+        ],
       };
     }
 
@@ -211,24 +250,33 @@ async function handleGetConversation(args) {
     });
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
         conversationId,
         messageCount: messages.length,
-        subject: messages[0]?.subject
-      }
+        subject: messages[0]?.subject,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{ type: "text", text: `Error getting conversation: ${error.message}` }]
+      content: [
+        { type: 'text', text: `Error getting conversation: ${error.message}` },
+      ],
     };
   }
 }
@@ -247,20 +295,31 @@ async function handleExportConversation(args) {
   const conversationId = args.conversationId;
   const format = (args.format || 'markdown').toLowerCase();
   const outputDir = args.outputDir;
-  const includeAttachments = args.includeAttachments !== false;
+  const _includeAttachments = args.includeAttachments !== false;
   const order = args.order || 'chronological';
 
   if (!conversationId) {
-    return { content: [{ type: "text", text: "Conversation ID is required." }] };
+    return {
+      content: [{ type: 'text', text: 'Conversation ID is required.' }],
+    };
   }
 
   if (!outputDir) {
-    return { content: [{ type: "text", text: "Output directory is required." }] };
+    return {
+      content: [{ type: 'text', text: 'Output directory is required.' }],
+    };
   }
 
   const validFormats = ['eml', 'mbox', 'markdown', 'json', 'html'];
   if (!validFormats.includes(format)) {
-    return { content: [{ type: "text", text: `Invalid format. Use: ${validFormats.join(', ')}` }] };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Invalid format. Use: ${validFormats.join(', ')}`,
+        },
+      ],
+    };
   }
 
   try {
@@ -273,14 +332,27 @@ async function handleExportConversation(args) {
       $select: selectFields,
       $filter: `conversationId eq '${conversationId}'`,
       $orderby: `receivedDateTime ${order === 'reverse' ? 'desc' : 'asc'}`,
-      $top: 100
+      $top: 100,
     };
 
-    const response = await callGraphAPI(accessToken, 'GET', endpoint, null, queryParams);
+    const response = await callGraphAPI(
+      accessToken,
+      'GET',
+      endpoint,
+      null,
+      queryParams
+    );
     const messages = response.value || [];
 
     if (messages.length === 0) {
-      return { content: [{ type: "text", text: `No messages found for conversation ID: ${conversationId}` }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `No messages found for conversation ID: ${conversationId}`,
+          },
+        ],
+      };
     }
 
     // Create output directory
@@ -309,7 +381,10 @@ async function handleExportConversation(args) {
           const msg = messages[i];
           const mimeContent = await callGraphAPIRaw(accessToken, msg.id);
           const msgDate = formatDateForFilename(msg.receivedDateTime);
-          const emlPath = path.join(emlDir, `${i + 1}_${msgDate}_${sanitizeForFilename(msg.from?.emailAddress?.name || 'unknown', 20)}.eml`);
+          const emlPath = path.join(
+            emlDir,
+            `${i + 1}_${msgDate}_${sanitizeForFilename(msg.from?.emailAddress?.name || 'unknown', 20)}.eml`
+          );
           fs.writeFileSync(emlPath, mimeContent, 'utf8');
           exportStats.bytes += Buffer.byteLength(mimeContent, 'utf8');
           exportedFiles.push(emlPath);
@@ -345,7 +420,9 @@ async function handleExportConversation(args) {
         const mdPath = path.join(resolvedDir, `${filenameBase}.md`);
         let mdContent = [];
 
-        mdContent.push(`# Email Conversation: ${messages[0].subject || '(no subject)'}\n`);
+        mdContent.push(
+          `# Email Conversation: ${messages[0].subject || '(no subject)'}\n`
+        );
         mdContent.push(`**Exported**: ${new Date().toISOString()}`);
         mdContent.push(`**Messages**: ${messages.length}`);
         mdContent.push(`**Conversation ID**: \`${conversationId}\`\n`);
@@ -354,10 +431,16 @@ async function handleExportConversation(args) {
         for (let i = 0; i < messages.length; i++) {
           const msg = messages[i];
           mdContent.push(`## Message ${i + 1}/${messages.length}\n`);
-          mdContent.push(`**From**: ${msg.from?.emailAddress?.name || ''} <${msg.from?.emailAddress?.address || ''}>`);
-          mdContent.push(`**To**: ${msg.toRecipients?.map(r => r.emailAddress?.address).join(', ') || ''}`);
+          mdContent.push(
+            `**From**: ${msg.from?.emailAddress?.name || ''} <${msg.from?.emailAddress?.address || ''}>`
+          );
+          mdContent.push(
+            `**To**: ${msg.toRecipients?.map((r) => r.emailAddress?.address).join(', ') || ''}`
+          );
           if (msg.ccRecipients?.length) {
-            mdContent.push(`**CC**: ${msg.ccRecipients.map(r => r.emailAddress?.address).join(', ')}`);
+            mdContent.push(
+              `**CC**: ${msg.ccRecipients.map((r) => r.emailAddress?.address).join(', ')}`
+            );
           }
           mdContent.push(`**Date**: ${msg.receivedDateTime}`);
           mdContent.push(`**Subject**: ${msg.subject || '(no subject)'}\n`);
@@ -381,7 +464,9 @@ async function handleExportConversation(args) {
           }
 
           if (msg.hasAttachments) {
-            mdContent.push(`\n*[${msg.hasAttachments ? 'Has attachments' : 'No attachments'}]*`);
+            mdContent.push(
+              `\n*[${msg.hasAttachments ? 'Has attachments' : 'No attachments'}]*`
+            );
           }
 
           mdContent.push('\n---\n');
@@ -397,13 +482,17 @@ async function handleExportConversation(args) {
       case 'json': {
         // Export as JSON
         const jsonPath = path.join(resolvedDir, `${filenameBase}.json`);
-        const jsonContent = JSON.stringify({
-          conversationId,
-          subject: messages[0].subject,
-          exportedAt: new Date().toISOString(),
-          messageCount: messages.length,
-          messages: messages
-        }, null, 2);
+        const jsonContent = JSON.stringify(
+          {
+            conversationId,
+            subject: messages[0].subject,
+            exportedAt: new Date().toISOString(),
+            messageCount: messages.length,
+            messages: messages,
+          },
+          null,
+          2
+        );
 
         fs.writeFileSync(jsonPath, jsonContent, 'utf8');
         exportStats.bytes = Buffer.byteLength(jsonContent, 'utf8');
@@ -418,26 +507,44 @@ async function handleExportConversation(args) {
 
         htmlContent.push('<!DOCTYPE html>');
         htmlContent.push('<html><head>');
-        htmlContent.push(`<title>${messages[0].subject || 'Email Conversation'}</title>`);
+        htmlContent.push(
+          `<title>${messages[0].subject || 'Email Conversation'}</title>`
+        );
         htmlContent.push('<meta charset="utf-8">');
         htmlContent.push('<style>');
-        htmlContent.push('body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }');
-        htmlContent.push('.message { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 5px; }');
-        htmlContent.push('.header { color: #666; font-size: 0.9em; margin-bottom: 10px; }');
+        htmlContent.push(
+          'body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }'
+        );
+        htmlContent.push(
+          '.message { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 5px; }'
+        );
+        htmlContent.push(
+          '.header { color: #666; font-size: 0.9em; margin-bottom: 10px; }'
+        );
         htmlContent.push('.body { white-space: pre-wrap; }');
         htmlContent.push('</style>');
         htmlContent.push('</head><body>');
-        htmlContent.push(`<h1>${messages[0].subject || 'Email Conversation'}</h1>`);
-        htmlContent.push(`<p><strong>Messages:</strong> ${messages.length} | <strong>Exported:</strong> ${new Date().toISOString()}</p>`);
+        htmlContent.push(
+          `<h1>${messages[0].subject || 'Email Conversation'}</h1>`
+        );
+        htmlContent.push(
+          `<p><strong>Messages:</strong> ${messages.length} | <strong>Exported:</strong> ${new Date().toISOString()}</p>`
+        );
         htmlContent.push('<hr>');
 
         for (let i = 0; i < messages.length; i++) {
           const msg = messages[i];
           htmlContent.push('<div class="message">');
           htmlContent.push('<div class="header">');
-          htmlContent.push(`<strong>From:</strong> ${msg.from?.emailAddress?.name || ''} &lt;${msg.from?.emailAddress?.address || ''}&gt;<br>`);
-          htmlContent.push(`<strong>Date:</strong> ${msg.receivedDateTime}<br>`);
-          htmlContent.push(`<strong>Subject:</strong> ${msg.subject || '(no subject)'}`);
+          htmlContent.push(
+            `<strong>From:</strong> ${msg.from?.emailAddress?.name || ''} &lt;${msg.from?.emailAddress?.address || ''}&gt;<br>`
+          );
+          htmlContent.push(
+            `<strong>Date:</strong> ${msg.receivedDateTime}<br>`
+          );
+          htmlContent.push(
+            `<strong>Subject:</strong> ${msg.subject || '(no subject)'}`
+          );
           htmlContent.push('</div>');
           htmlContent.push('<div class="body">');
 
@@ -460,9 +567,12 @@ async function handleExportConversation(args) {
     }
 
     // Format result
-    const sizeFormatted = exportStats.bytes < 1024 ? `${exportStats.bytes} B` :
-      exportStats.bytes < 1024 * 1024 ? `${(exportStats.bytes / 1024).toFixed(1)} KB` :
-        `${(exportStats.bytes / (1024 * 1024)).toFixed(2)} MB`;
+    const sizeFormatted =
+      exportStats.bytes < 1024
+        ? `${exportStats.bytes} B`
+        : exportStats.bytes < 1024 * 1024
+          ? `${(exportStats.bytes / 1024).toFixed(1)} KB`
+          : `${(exportStats.bytes / (1024 * 1024)).toFixed(2)} MB`;
 
     let output = [];
     output.push(`# Conversation Exported\n`);
@@ -472,31 +582,47 @@ async function handleExportConversation(args) {
     output.push(`**Total Size**: ${sizeFormatted}`);
     output.push(`**Output Directory**: ${resolvedDir}\n`);
     output.push('## Exported Files\n');
-    exportedFiles.forEach(f => output.push(`- \`${path.basename(f)}\``));
+    exportedFiles.forEach((f) => output.push(`- \`${path.basename(f)}\``));
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
         conversationId,
         format,
         messageCount: exportStats.messages,
         bytes: exportStats.bytes,
-        files: exportedFiles
-      }
+        files: exportedFiles,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
-      return { content: [{ type: "text", text: "Authentication required. Please use the 'authenticate' tool first." }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
+      };
     }
-    return { content: [{ type: "text", text: `Error exporting conversation: ${error.message}` }] };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error exporting conversation: ${error.message}`,
+        },
+      ],
+    };
   }
 }
 
 module.exports = {
   handleListConversations,
   handleGetConversation,
-  handleExportConversation
+  handleExportConversation,
 };

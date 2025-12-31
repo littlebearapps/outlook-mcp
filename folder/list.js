@@ -12,46 +12,57 @@ const { ensureAuthenticated } = require('../auth');
 async function handleListFolders(args) {
   const includeItemCounts = args.includeItemCounts === true;
   const includeChildren = args.includeChildren === true;
-  
+
   try {
     // Get access token
     const accessToken = await ensureAuthenticated();
-    
+
     // Get all mail folders
-    const folders = await getAllFoldersHierarchy(accessToken, includeItemCounts);
-    
+    const folders = await getAllFoldersHierarchy(
+      accessToken,
+      includeItemCounts
+    );
+
     // If including children, format as hierarchy
     if (includeChildren) {
       return {
-        content: [{ 
-          type: "text", 
-          text: formatFolderHierarchy(folders, includeItemCounts)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: formatFolderHierarchy(folders, includeItemCounts),
+          },
+        ],
       };
     } else {
       // Otherwise, format as flat list
       return {
-        content: [{ 
-          type: "text", 
-          text: formatFolderList(folders, includeItemCounts)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: formatFolderList(folders, includeItemCounts),
+          },
+        ],
       };
     }
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{ 
-          type: "text", 
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
-    
+
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error listing folders: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error listing folders: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -68,26 +79,28 @@ async function getAllFoldersHierarchy(accessToken, includeItemCounts) {
     const selectFields = includeItemCounts
       ? 'id,displayName,parentFolderId,childFolderCount,totalItemCount,unreadItemCount'
       : 'id,displayName,parentFolderId,childFolderCount';
-    
+
     // Get all mail folders
     const response = await callGraphAPI(
       accessToken,
       'GET',
       'me/mailFolders',
       null,
-      { 
+      {
         $top: 100,
-        $select: selectFields
+        $select: selectFields,
       }
     );
-    
+
     if (!response.value) {
       return [];
     }
-    
+
     // Get child folders for folders with children
-    const foldersWithChildren = response.value.filter(f => f.childFolderCount > 0);
-    
+    const foldersWithChildren = response.value.filter(
+      (f) => f.childFolderCount > 0
+    );
+
     const childFolderPromises = foldersWithChildren.map(async (folder) => {
       try {
         const childResponse = await callGraphAPI(
@@ -97,29 +110,31 @@ async function getAllFoldersHierarchy(accessToken, includeItemCounts) {
           null,
           { $select: selectFields }
         );
-        
+
         // Add parent folder info to each child
         const childFolders = childResponse.value || [];
-        childFolders.forEach(child => {
+        childFolders.forEach((child) => {
           child.parentFolder = folder.displayName;
         });
-        
+
         return childFolders;
       } catch (error) {
-        console.error(`Error getting child folders for "${folder.displayName}": ${error.message}`);
+        console.error(
+          `Error getting child folders for "${folder.displayName}": ${error.message}`
+        );
         return [];
       }
     });
-    
+
     const childFolders = await Promise.all(childFolderPromises);
     const allChildFolders = childFolders.flat();
-    
+
     // Add top-level flag to parent folders
-    const topLevelFolders = response.value.map(folder => ({
+    const topLevelFolders = response.value.map((folder) => ({
       ...folder,
-      isTopLevel: true
+      isTopLevel: true,
     }));
-    
+
     // Combine all folders
     return [...topLevelFolders, ...allChildFolders];
   } catch (error) {
@@ -136,52 +151,62 @@ async function getAllFoldersHierarchy(accessToken, includeItemCounts) {
  */
 function formatFolderList(folders, includeItemCounts) {
   if (!folders || folders.length === 0) {
-    return "No folders found.";
+    return 'No folders found.';
   }
-  
+
   // Sort folders alphabetically, with well-known folders first
-  const wellKnownFolderNames = ['Inbox', 'Drafts', 'Sent Items', 'Deleted Items', 'Junk Email', 'Archive'];
-  
+  const wellKnownFolderNames = [
+    'Inbox',
+    'Drafts',
+    'Sent Items',
+    'Deleted Items',
+    'Junk Email',
+    'Archive',
+  ];
+
   const sortedFolders = [...folders].sort((a, b) => {
     // Well-known folders come first
     const aIsWellKnown = wellKnownFolderNames.includes(a.displayName);
     const bIsWellKnown = wellKnownFolderNames.includes(b.displayName);
-    
+
     if (aIsWellKnown && !bIsWellKnown) return -1;
     if (!aIsWellKnown && bIsWellKnown) return 1;
-    
+
     if (aIsWellKnown && bIsWellKnown) {
       // Sort well-known folders by their index in the array
-      return wellKnownFolderNames.indexOf(a.displayName) - wellKnownFolderNames.indexOf(b.displayName);
+      return (
+        wellKnownFolderNames.indexOf(a.displayName) -
+        wellKnownFolderNames.indexOf(b.displayName)
+      );
     }
-    
+
     // Sort other folders alphabetically
     return a.displayName.localeCompare(b.displayName);
   });
-  
+
   // Format each folder
-  const folderLines = sortedFolders.map(folder => {
+  const folderLines = sortedFolders.map((folder) => {
     let folderInfo = folder.displayName;
-    
+
     // Add parent folder info if available
     if (folder.parentFolder) {
       folderInfo += ` (in ${folder.parentFolder})`;
     }
-    
+
     // Add item counts if requested
     if (includeItemCounts) {
       const unreadCount = folder.unreadItemCount || 0;
       const totalCount = folder.totalItemCount || 0;
       folderInfo += ` - ${totalCount} items`;
-      
+
       if (unreadCount > 0) {
         folderInfo += ` (${unreadCount} unread)`;
       }
     }
-    
+
     return folderInfo;
   });
-  
+
   return `Found ${folders.length} folders:\n\n${folderLines.join('\n')}`;
 }
 
@@ -193,27 +218,27 @@ function formatFolderList(folders, includeItemCounts) {
  */
 function formatFolderHierarchy(folders, includeItemCounts) {
   if (!folders || folders.length === 0) {
-    return "No folders found.";
+    return 'No folders found.';
   }
-  
+
   // Build folder hierarchy
   const folderMap = new Map();
   const rootFolders = [];
-  
+
   // First pass: create map of all folders
-  folders.forEach(folder => {
+  folders.forEach((folder) => {
     folderMap.set(folder.id, {
       ...folder,
-      children: []
+      children: [],
     });
-    
+
     if (folder.isTopLevel) {
       rootFolders.push(folder.id);
     }
   });
-  
+
   // Second pass: build hierarchy
-  folders.forEach(folder => {
+  folders.forEach((folder) => {
     if (!folder.isTopLevel && folder.parentFolderId) {
       const parent = folderMap.get(folder.parentFolderId);
       if (parent) {
@@ -224,40 +249,40 @@ function formatFolderHierarchy(folders, includeItemCounts) {
       }
     }
   });
-  
+
   // Format hierarchy recursively
   function formatSubtree(folderId, level = 0) {
     const folder = folderMap.get(folderId);
     if (!folder) return '';
-    
+
     const indent = '  '.repeat(level);
     let line = `${indent}${folder.displayName}`;
-    
+
     // Add item counts if requested
     if (includeItemCounts) {
       const unreadCount = folder.unreadItemCount || 0;
       const totalCount = folder.totalItemCount || 0;
       line += ` - ${totalCount} items`;
-      
+
       if (unreadCount > 0) {
         line += ` (${unreadCount} unread)`;
       }
     }
-    
+
     // Add children
     const childLines = folder.children
-      .map(childId => formatSubtree(childId, level + 1))
-      .filter(line => line.length > 0)
+      .map((childId) => formatSubtree(childId, level + 1))
+      .filter((line) => line.length > 0)
       .join('\n');
-    
+
     return childLines.length > 0 ? `${line}\n${childLines}` : line;
   }
-  
+
   // Format all root folders
   const formattedHierarchy = rootFolders
-    .map(folderId => formatSubtree(folderId))
+    .map((folderId) => formatSubtree(folderId))
     .join('\n');
-  
+
   return `Folder Hierarchy:\n\n${formattedHierarchy}`;
 }
 

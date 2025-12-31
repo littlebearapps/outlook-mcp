@@ -15,18 +15,18 @@ async function ensureAuthenticated(forceNew = false) {
     // Force re-authentication
     throw new Error('Authentication required');
   }
-  
+
   // Check for existing token
   const accessToken = tokenManager.getAccessToken();
   if (!accessToken) {
     throw new Error('Authentication required');
   }
-  
+
   return accessToken;
 }
 
 module.exports = {
   tokenManager,
   authTools,
-  ensureAuthenticated
+  ensureAuthenticated,
 };

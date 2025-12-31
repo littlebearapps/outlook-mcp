@@ -13,13 +13,7 @@ const FIELD_PRESETS = {
    * Minimal fields for listing/scanning emails
    * Use case: Quick folder scan, batch operations needing just IDs
    */
-  list: [
-    'id',
-    'subject',
-    'from',
-    'receivedDateTime',
-    'isRead'
-  ],
+  list: ['id', 'subject', 'from', 'receivedDateTime', 'isRead'],
 
   /**
    * Standard fields for reading email content
@@ -36,7 +30,7 @@ const FIELD_PRESETS = {
     'bodyPreview',
     'hasAttachments',
     'importance',
-    'isRead'
+    'isRead',
   ],
 
   /**
@@ -61,7 +55,7 @@ const FIELD_PRESETS = {
     'internetMessageId',
     'conversationId',
     'conversationIndex',
-    'parentFolderId'
+    'parentFolderId',
   ],
 
   /**
@@ -94,7 +88,7 @@ const FIELD_PRESETS = {
     'categories',
     'flag',
     'webLink',
-    'changeKey'
+    'changeKey',
   ],
 
   /**
@@ -111,7 +105,7 @@ const FIELD_PRESETS = {
     'hasAttachments',
     'importance',
     'isRead',
-    'parentFolderId'
+    'parentFolderId',
   ],
 
   /**
@@ -125,7 +119,7 @@ const FIELD_PRESETS = {
     'receivedDateTime',
     'isRead',
     'parentFolderId',
-    'changeKey'
+    'changeKey',
   ],
 
   /**
@@ -141,8 +135,8 @@ const FIELD_PRESETS = {
     'bodyPreview',
     'conversationId',
     'conversationIndex',
-    'isRead'
-  ]
+    'isRead',
+  ],
 };
 
 /**
@@ -179,7 +173,7 @@ const EXTENDED_EMAIL_FIELDS = [
   'flag',
   'webLink',
   'changeKey',
-  'inferenceClassification'
+  'inferenceClassification',
 ];
 
 /**
@@ -189,11 +183,7 @@ const FOLDER_FIELDS = {
   /**
    * Basic folder info
    */
-  basic: [
-    'id',
-    'displayName',
-    'parentFolderId'
-  ],
+  basic: ['id', 'displayName', 'parentFolderId'],
 
   /**
    * Folder with item counts
@@ -203,7 +193,7 @@ const FOLDER_FIELDS = {
     'displayName',
     'parentFolderId',
     'totalItemCount',
-    'unreadItemCount'
+    'unreadItemCount',
   ],
 
   /**
@@ -217,8 +207,8 @@ const FOLDER_FIELDS = {
     'childFolderCount',
     'totalItemCount',
     'unreadItemCount',
-    'isHidden'
-  ]
+    'isHidden',
+  ],
 };
 
 /**
@@ -282,7 +272,7 @@ function validateFields(fields) {
   const validFields = new Set(EXTENDED_EMAIL_FIELDS);
   const result = { valid: [], invalid: [] };
 
-  fields.forEach(field => {
+  fields.forEach((field) => {
     if (validFields.has(field)) {
       result.valid.push(field);
     } else {
@@ -301,5 +291,5 @@ module.exports = {
   getFolderFields,
   buildFieldSelection,
   mergeFields,
-  validateFields
+  validateFields,
 };

@@ -14,10 +14,12 @@ async function handleAcceptEvent(args) {
 
   if (!eventId) {
     return {
-      content: [{
-        type: "text",
-        text: "Event ID is required to accept an event."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Event ID is required to accept an event.',
+        },
+      ],
     };
   }
 
@@ -30,33 +32,39 @@ async function handleAcceptEvent(args) {
 
     // Request body
     const body = {
-      comment: comment || "Accepted via API"
+      comment: comment || 'Accepted via API',
     };
 
     // Make API call
     await callGraphAPI(accessToken, 'POST', endpoint, body);
 
     return {
-      content: [{
-        type: "text",
-        text: `Event with ID ${eventId} has been successfully accepted.`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Event with ID ${eventId} has been successfully accepted.`,
+        },
+      ],
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error accepting event: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error accepting event: ${error.message}`,
+        },
+      ],
     };
   }
 }

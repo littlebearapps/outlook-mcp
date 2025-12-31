@@ -9,7 +9,13 @@ const { ensureAuthenticated } = require('../auth');
 
 // Days of the week for working hours
 const DAYS_OF_WEEK = [
-  'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
 ];
 
 /**
@@ -33,8 +39,8 @@ function formatWorkingHours(workingHours) {
   lines.push(`**End Time**: ${formatTime(workingHours.endTime)}`);
 
   if (workingHours.daysOfWeek && workingHours.daysOfWeek.length > 0) {
-    const days = workingHours.daysOfWeek.map(d =>
-      d.charAt(0).toUpperCase() + d.slice(1)
+    const days = workingHours.daysOfWeek.map(
+      (d) => d.charAt(0).toUpperCase() + d.slice(1)
     );
     lines.push(`**Work Days**: ${days.join(', ')}`);
   }
@@ -49,27 +55,43 @@ function formatAutomaticReplies(settings) {
   if (!settings) return 'Not configured';
 
   const lines = [];
-  lines.push(`**Status**: ${settings.status === 'disabled' ? '🔴 Disabled' :
-    settings.status === 'alwaysEnabled' ? '🟢 Always Enabled' :
-      '📅 Scheduled'}`);
+  lines.push(
+    `**Status**: ${
+      settings.status === 'disabled'
+        ? '🔴 Disabled'
+        : settings.status === 'alwaysEnabled'
+          ? '🟢 Always Enabled'
+          : '📅 Scheduled'
+    }`
+  );
 
   if (settings.status !== 'disabled') {
     if (settings.scheduledStartDateTime) {
-      lines.push(`**Scheduled Start**: ${new Date(settings.scheduledStartDateTime.dateTime).toLocaleString()}`);
+      lines.push(
+        `**Scheduled Start**: ${new Date(settings.scheduledStartDateTime.dateTime).toLocaleString()}`
+      );
     }
     if (settings.scheduledEndDateTime) {
-      lines.push(`**Scheduled End**: ${new Date(settings.scheduledEndDateTime.dateTime).toLocaleString()}`);
+      lines.push(
+        `**Scheduled End**: ${new Date(settings.scheduledEndDateTime.dateTime).toLocaleString()}`
+      );
     }
 
     if (settings.internalReplyMessage) {
-      lines.push(`\n**Internal Reply**:\n${settings.internalReplyMessage.substring(0, 500)}${settings.internalReplyMessage.length > 500 ? '...' : ''}`);
+      lines.push(
+        `\n**Internal Reply**:\n${settings.internalReplyMessage.substring(0, 500)}${settings.internalReplyMessage.length > 500 ? '...' : ''}`
+      );
     }
 
     if (settings.externalReplyMessage) {
-      lines.push(`\n**External Reply**:\n${settings.externalReplyMessage.substring(0, 500)}${settings.externalReplyMessage.length > 500 ? '...' : ''}`);
+      lines.push(
+        `\n**External Reply**:\n${settings.externalReplyMessage.substring(0, 500)}${settings.externalReplyMessage.length > 500 ? '...' : ''}`
+      );
     }
 
-    lines.push(`\n**External Audience**: ${settings.externalAudience || 'none'}`);
+    lines.push(
+      `\n**External Audience**: ${settings.externalAudience || 'none'}`
+    );
   }
 
   return lines.join('\n');
@@ -105,7 +127,9 @@ async function handleGetMailboxSettings(args) {
       if (settings.language) {
         output.push('## Language');
         output.push(`**Locale**: ${settings.language.locale || 'Not set'}`);
-        output.push(`**Display Name**: ${settings.language.displayName || 'Not set'}`);
+        output.push(
+          `**Display Name**: ${settings.language.displayName || 'Not set'}`
+        );
         output.push('');
       }
 
@@ -136,33 +160,41 @@ async function handleGetMailboxSettings(args) {
 
       if (settings.delegateMeetingMessageDeliveryOptions) {
         output.push('## Delegate Settings');
-        output.push(`**Meeting Message Delivery**: ${settings.delegateMeetingMessageDeliveryOptions}`);
+        output.push(
+          `**Meeting Message Delivery**: ${settings.delegateMeetingMessageDeliveryOptions}`
+        );
       }
     }
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
-        settings
-      }
+        settings,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error getting mailbox settings: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error getting mailbox settings: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -170,7 +202,7 @@ async function handleGetMailboxSettings(args) {
 /**
  * Get automatic replies (out of office) handler
  */
-async function handleGetAutomaticReplies(args) {
+async function handleGetAutomaticReplies(_args) {
   try {
     const accessToken = await ensureAuthenticated();
 
@@ -185,28 +217,34 @@ async function handleGetAutomaticReplies(args) {
     output.push(formatAutomaticReplies(settings));
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
-        settings
-      }
+        settings,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error getting automatic replies: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error getting automatic replies: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -221,7 +259,7 @@ async function handleSetAutomaticReplies(args) {
     endDateTime,
     internalReplyMessage,
     externalReplyMessage,
-    externalAudience
+    externalAudience,
   } = args;
 
   try {
@@ -237,11 +275,11 @@ async function handleSetAutomaticReplies(args) {
       settings.status = 'scheduled';
       settings.scheduledStartDateTime = {
         dateTime: new Date(startDateTime).toISOString(),
-        timeZone: 'UTC'
+        timeZone: 'UTC',
       };
       settings.scheduledEndDateTime = {
         dateTime: new Date(endDateTime).toISOString(),
-        timeZone: 'UTC'
+        timeZone: 'UTC',
       };
     } else if (enabled === true) {
       settings.status = 'alwaysEnabled';
@@ -260,22 +298,21 @@ async function handleSetAutomaticReplies(args) {
     if (externalAudience) {
       if (!['none', 'contactsOnly', 'all'].includes(externalAudience)) {
         return {
-          content: [{
-            type: "text",
-            text: "externalAudience must be 'none', 'contactsOnly', or 'all'."
-          }]
+          content: [
+            {
+              type: 'text',
+              text: "externalAudience must be 'none', 'contactsOnly', or 'all'.",
+            },
+          ],
         };
       }
       settings.externalAudience = externalAudience;
     }
 
     // Apply settings
-    await callGraphAPI(
-      accessToken,
-      '/me/mailboxSettings',
-      'PATCH',
-      { automaticRepliesSetting: settings }
-    );
+    await callGraphAPI(accessToken, '/me/mailboxSettings', 'PATCH', {
+      automaticRepliesSetting: settings,
+    });
 
     // Get updated settings
     const updated = await callGraphAPI(
@@ -289,28 +326,34 @@ async function handleSetAutomaticReplies(args) {
     output.push(formatAutomaticReplies(updated));
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
-        settings: updated
-      }
+        settings: updated,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error setting automatic replies: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error setting automatic replies: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -318,7 +361,7 @@ async function handleSetAutomaticReplies(args) {
 /**
  * Get working hours handler
  */
-async function handleGetWorkingHours(args) {
+async function handleGetWorkingHours(_args) {
   try {
     const accessToken = await ensureAuthenticated();
 
@@ -333,28 +376,34 @@ async function handleGetWorkingHours(args) {
     output.push(formatWorkingHours(settings));
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
-        settings
-      }
+        settings,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error getting working hours: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error getting working hours: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -368,10 +417,12 @@ async function handleSetWorkingHours(args) {
   // Validate inputs
   if (!startTime && !endTime && !daysOfWeek && !timeZone) {
     return {
-      content: [{
-        type: "text",
-        text: "At least one of startTime, endTime, daysOfWeek, or timeZone is required."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'At least one of startTime, endTime, daysOfWeek, or timeZone is required.',
+        },
+      ],
     };
   }
 
@@ -379,30 +430,38 @@ async function handleSetWorkingHours(args) {
   const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
   if (startTime && !timeRegex.test(startTime)) {
     return {
-      content: [{
-        type: "text",
-        text: "startTime must be in HH:MM or HH:MM:SS format (e.g., '09:00' or '09:00:00')."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: "startTime must be in HH:MM or HH:MM:SS format (e.g., '09:00' or '09:00:00').",
+        },
+      ],
     };
   }
   if (endTime && !timeRegex.test(endTime)) {
     return {
-      content: [{
-        type: "text",
-        text: "endTime must be in HH:MM or HH:MM:SS format (e.g., '17:00' or '17:00:00')."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: "endTime must be in HH:MM or HH:MM:SS format (e.g., '17:00' or '17:00:00').",
+        },
+      ],
     };
   }
 
   // Validate days of week
   if (daysOfWeek) {
-    const invalidDays = daysOfWeek.filter(d => !DAYS_OF_WEEK.includes(d.toLowerCase()));
+    const invalidDays = daysOfWeek.filter(
+      (d) => !DAYS_OF_WEEK.includes(d.toLowerCase())
+    );
     if (invalidDays.length > 0) {
       return {
-        content: [{
-          type: "text",
-          text: `Invalid days: ${invalidDays.join(', ')}. Valid days: ${DAYS_OF_WEEK.join(', ')}`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `Invalid days: ${invalidDays.join(', ')}. Valid days: ${DAYS_OF_WEEK.join(', ')}`,
+          },
+        ],
       };
     }
   }
@@ -419,19 +478,26 @@ async function handleSetWorkingHours(args) {
 
     // Build update
     const workingHours = {
-      startTime: startTime ? (startTime.length === 5 ? startTime + ':00.0000000' : startTime + '.0000000') : current.startTime,
-      endTime: endTime ? (endTime.length === 5 ? endTime + ':00.0000000' : endTime + '.0000000') : current.endTime,
-      daysOfWeek: daysOfWeek ? daysOfWeek.map(d => d.toLowerCase()) : current.daysOfWeek,
-      timeZone: timeZone ? { name: timeZone } : current.timeZone
+      startTime: startTime
+        ? startTime.length === 5
+          ? startTime + ':00.0000000'
+          : startTime + '.0000000'
+        : current.startTime,
+      endTime: endTime
+        ? endTime.length === 5
+          ? endTime + ':00.0000000'
+          : endTime + '.0000000'
+        : current.endTime,
+      daysOfWeek: daysOfWeek
+        ? daysOfWeek.map((d) => d.toLowerCase())
+        : current.daysOfWeek,
+      timeZone: timeZone ? { name: timeZone } : current.timeZone,
     };
 
     // Apply settings
-    await callGraphAPI(
-      accessToken,
-      '/me/mailboxSettings',
-      'PATCH',
-      { workingHours }
-    );
+    await callGraphAPI(accessToken, '/me/mailboxSettings', 'PATCH', {
+      workingHours,
+    });
 
     // Get updated settings
     const updated = await callGraphAPI(
@@ -445,28 +511,34 @@ async function handleSetWorkingHours(args) {
     output.push(formatWorkingHours(updated));
 
     return {
-      content: [{
-        type: "text",
-        text: output.join('\n')
-      }],
+      content: [
+        {
+          type: 'text',
+          text: output.join('\n'),
+        },
+      ],
       _meta: {
-        settings: updated
-      }
+        settings: updated,
+      },
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
     return {
-      content: [{
-        type: "text",
-        text: `Error setting working hours: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error setting working hours: ${error.message}`,
+        },
+      ],
     };
   }
 }
@@ -474,108 +546,118 @@ async function handleSetWorkingHours(args) {
 // Tool definitions
 const settingsTools = [
   {
-    name: "get-mailbox-settings",
-    description: "Get mailbox settings (language, timezone, date format, working hours, auto-replies)",
+    name: 'get-mailbox-settings',
+    description:
+      'Get mailbox settings (language, timezone, date format, working hours, auto-replies)',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         section: {
-          type: "string",
-          enum: ["all", "language", "timeZone", "workingHours", "automaticRepliesSetting"],
-          description: "Specific section to retrieve (default: all)"
-        }
+          type: 'string',
+          enum: [
+            'all',
+            'language',
+            'timeZone',
+            'workingHours',
+            'automaticRepliesSetting',
+          ],
+          description: 'Specific section to retrieve (default: all)',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleGetMailboxSettings
+    handler: handleGetMailboxSettings,
   },
   {
-    name: "get-automatic-replies",
-    description: "Get automatic replies (out of office) configuration",
+    name: 'get-automatic-replies',
+    description: 'Get automatic replies (out of office) configuration',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {},
-      required: []
+      required: [],
     },
-    handler: handleGetAutomaticReplies
+    handler: handleGetAutomaticReplies,
   },
   {
-    name: "set-automatic-replies",
-    description: "Configure automatic replies (out of office) messages",
+    name: 'set-automatic-replies',
+    description: 'Configure automatic replies (out of office) messages',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         enabled: {
-          type: "boolean",
-          description: "Enable (true) or disable (false) automatic replies"
+          type: 'boolean',
+          description: 'Enable (true) or disable (false) automatic replies',
         },
         startDateTime: {
-          type: "string",
-          description: "Start date/time for scheduled mode (ISO 8601 format)"
+          type: 'string',
+          description: 'Start date/time for scheduled mode (ISO 8601 format)',
         },
         endDateTime: {
-          type: "string",
-          description: "End date/time for scheduled mode (ISO 8601 format)"
+          type: 'string',
+          description: 'End date/time for scheduled mode (ISO 8601 format)',
         },
         internalReplyMessage: {
-          type: "string",
-          description: "Reply message for internal senders (same organization)"
+          type: 'string',
+          description: 'Reply message for internal senders (same organization)',
         },
         externalReplyMessage: {
-          type: "string",
-          description: "Reply message for external senders"
+          type: 'string',
+          description: 'Reply message for external senders',
         },
         externalAudience: {
-          type: "string",
-          enum: ["none", "contactsOnly", "all"],
-          description: "Who receives external reply: none, contactsOnly, or all"
-        }
+          type: 'string',
+          enum: ['none', 'contactsOnly', 'all'],
+          description:
+            'Who receives external reply: none, contactsOnly, or all',
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleSetAutomaticReplies
+    handler: handleSetAutomaticReplies,
   },
   {
-    name: "get-working-hours",
-    description: "Get your configured working hours",
+    name: 'get-working-hours',
+    description: 'Get your configured working hours',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {},
-      required: []
+      required: [],
     },
-    handler: handleGetWorkingHours
+    handler: handleGetWorkingHours,
   },
   {
-    name: "set-working-hours",
-    description: "Configure your working hours for scheduling",
+    name: 'set-working-hours',
+    description: 'Configure your working hours for scheduling',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         startTime: {
-          type: "string",
-          description: "Work start time in HH:MM format (e.g., '09:00')"
+          type: 'string',
+          description: "Work start time in HH:MM format (e.g., '09:00')",
         },
         endTime: {
-          type: "string",
-          description: "Work end time in HH:MM format (e.g., '17:00')"
+          type: 'string',
+          description: "Work end time in HH:MM format (e.g., '17:00')",
         },
         daysOfWeek: {
-          type: "array",
+          type: 'array',
           items: {
-            type: "string",
-            enum: DAYS_OF_WEEK
+            type: 'string',
+            enum: DAYS_OF_WEEK,
           },
-          description: "Work days (e.g., ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])"
+          description:
+            "Work days (e.g., ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])",
         },
         timeZone: {
-          type: "string",
-          description: "Time zone name (e.g., 'Pacific Standard Time', 'Australia/Sydney')"
-        }
+          type: 'string',
+          description:
+            "Time zone name (e.g., 'Pacific Standard Time', 'Australia/Sydney')",
+        },
       },
-      required: []
+      required: [],
     },
-    handler: handleSetWorkingHours
-  }
+    handler: handleSetWorkingHours,
+  },
 ];
 
 module.exports = {
@@ -584,5 +666,5 @@ module.exports = {
   handleGetAutomaticReplies,
   handleSetAutomaticReplies,
   handleGetWorkingHours,
-  handleSetWorkingHours
+  handleSetWorkingHours,
 };

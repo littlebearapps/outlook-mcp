@@ -4,10 +4,17 @@
  * Token-efficient implementation with outputVerbosity support and Markdown formatting.
  */
 const config = require('../config');
-const { callGraphAPI, callGraphAPIPaginated } = require('../utils/graph-api');
+const {
+  callGraphAPI: _callGraphAPI,
+  callGraphAPIPaginated,
+} = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 const { resolveFolderPath } = require('./folder-utils');
-const { formatEmailList, VERBOSITY, DEFAULT_LIMITS } = require('../utils/response-formatter');
+const {
+  formatEmailList,
+  VERBOSITY,
+  DEFAULT_LIMITS,
+} = require('../utils/response-formatter');
 const { getEmailFields } = require('../utils/field-presets');
 
 /**
@@ -18,12 +25,12 @@ const { getEmailFields } = require('../utils/field-presets');
 function getFieldPresetForVerbosity(verbosity) {
   switch (verbosity) {
     case VERBOSITY.MINIMAL:
-      return 'list';      // id, subject, from, receivedDateTime, isRead
+      return 'list'; // id, subject, from, receivedDateTime, isRead
     case VERBOSITY.FULL:
-      return 'search';    // Includes toRecipients, bodyPreview, hasAttachments, importance
+      return 'search'; // Includes toRecipients, bodyPreview, hasAttachments, importance
     case VERBOSITY.STANDARD:
     default:
-      return 'list';      // Standard uses list preset but formats with more detail
+      return 'list'; // Standard uses list preset but formats with more detail
   }
 }
 
@@ -36,7 +43,7 @@ function getFieldPresetForVerbosity(verbosity) {
  * @returns {object} - MCP response with Markdown formatted content
  */
 async function handleListEmails(args) {
-  const folder = args.folder || "inbox";
+  const folder = args.folder || 'inbox';
   const requestedCount = args.count || DEFAULT_LIMITS.listEmails; // Default 25 (was 10)
   const verbosity = args.outputVerbosity || VERBOSITY.STANDARD;
 
@@ -55,18 +62,26 @@ async function handleListEmails(args) {
     const queryParams = {
       $top: Math.min(config.MAX_RESULT_COUNT, requestedCount),
       $orderby: 'receivedDateTime desc',
-      $select: selectFields
+      $select: selectFields,
     };
 
     // Make API call with pagination support
-    const response = await callGraphAPIPaginated(accessToken, 'GET', endpoint, queryParams, requestedCount);
+    const response = await callGraphAPIPaginated(
+      accessToken,
+      'GET',
+      endpoint,
+      queryParams,
+      requestedCount
+    );
 
     if (!response.value || response.value.length === 0) {
       return {
-        content: [{
-          type: "text",
-          text: `No emails found in ${folder}.`
-        }]
+        content: [
+          {
+            type: 'text',
+            text: `No emails found in ${folder}.`,
+          },
+        ],
       };
     }
 
@@ -75,34 +90,45 @@ async function handleListEmails(args) {
       returned: response.value.length,
       totalAvailable: response['@odata.count'] || null,
       hasMore: !!response['@odata.nextLink'],
-      verbosity: verbosity
+      verbosity: verbosity,
     };
 
     // Format results using response-formatter (returns Markdown)
-    const formattedOutput = formatEmailList(response.value, folder, verbosity, meta);
+    const formattedOutput = formatEmailList(
+      response.value,
+      folder,
+      verbosity,
+      meta
+    );
 
     return {
-      content: [{
-        type: "text",
-        text: formattedOutput
-      }],
-      _meta: meta
+      content: [
+        {
+          type: 'text',
+          text: formattedOutput,
+        },
+      ],
+      _meta: meta,
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error listing emails: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error listing emails: ${error.message}`,
+        },
+      ],
     };
   }
 }

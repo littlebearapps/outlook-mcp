@@ -15,10 +15,12 @@ async function handleCreateEvent(args) {
 
   if (!subject || !start || !end) {
     return {
-      content: [{
-        type: "text",
-        text: "Subject, start, and end times are required to create an event."
-      }]
+      content: [
+        {
+          type: 'text',
+          text: 'Subject, start, and end times are required to create an event.',
+        },
+      ],
     };
   }
 
@@ -32,36 +34,56 @@ async function handleCreateEvent(args) {
     // Request body
     const bodyContent = {
       subject,
-      start: { dateTime: start.dateTime || start, timeZone: start.timeZone || DEFAULT_TIMEZONE },
-      end: { dateTime: end.dateTime || end, timeZone: end.timeZone || DEFAULT_TIMEZONE },
-      attendees: attendees?.map(email => ({ emailAddress: { address: email }, type: "required" })),
-      body: { contentType: "HTML", content: body || "" }
+      start: {
+        dateTime: start.dateTime || start,
+        timeZone: start.timeZone || DEFAULT_TIMEZONE,
+      },
+      end: {
+        dateTime: end.dateTime || end,
+        timeZone: end.timeZone || DEFAULT_TIMEZONE,
+      },
+      attendees: attendees?.map((email) => ({
+        emailAddress: { address: email },
+        type: 'required',
+      })),
+      body: { contentType: 'HTML', content: body || '' },
     };
 
     // Make API call
-    const response = await callGraphAPI(accessToken, 'POST', endpoint, bodyContent);
+    const _response = await callGraphAPI(
+      accessToken,
+      'POST',
+      endpoint,
+      bodyContent
+    );
 
     return {
-      content: [{
-        type: "text",
-        text: `Event '${subject}' has been successfully created.`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Event '${subject}' has been successfully created.`,
+        },
+      ],
     };
   } catch (error) {
     if (error.message === 'Authentication required') {
       return {
-        content: [{
-          type: "text",
-          text: "Authentication required. Please use the 'authenticate' tool first."
-        }]
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'authenticate' tool first.",
+          },
+        ],
       };
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Error creating event: ${error.message}`
-      }]
+      content: [
+        {
+          type: 'text',
+          text: `Error creating event: ${error.message}`,
+        },
+      ],
     };
   }
 }
