@@ -76,9 +76,11 @@ jobs:
         run: |
           if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
             echo "number=$INPUT_PR_NUM" >> "$GITHUB_OUTPUT"
-          elif [ "$EVENT_NAME" == "pull_request" ] || [ "$EVENT_NAME" == "pull_request_review" ]; then
+          elif [ "$EVENT_NAME" == "pull_request" ] || [ "$EVENT_NAME" == "pull_request_review" ] || [ "$EVENT_NAME" == "pull_request_review_comment" ]; then
+            # pull_request, pull_request_review, and pull_request_review_comment all use github.event.pull_request.number
             echo "number=$PR_NUM" >> "$GITHUB_OUTPUT"
           else
+            # issue_comment uses github.event.issue.number
             echo "number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
           fi
 
@@ -171,17 +173,17 @@ jobs:
           TOTAL=$(echo "$ALL_COMMENTS" | jq 'length')
           echo "codex_comment_count=$TOTAL" >> "$GITHUB_OUTPUT"
 
-          # Count P0 issues (Codex badge format or explicit P0 markers)
-          # Matches: ![P0 Badge], badge/P0, [P0], **P0**, explicit "P0" word
-          # Avoids false positives from generic words like "critical"
-          JQ_P0='[.[] | select(.body | test("badge/P0|P0-red|\\[P0\\]|\\*\\*P0\\*\\*|\\bP0\\b"; "i"))] | length'
+          # Count P0 issues (Codex badge format markers only)
+          # Matches: badge/P0 (URL), P0-red (badge color), [P0], **P0**
+          # Avoids false positives from mentions like "P0/P1" in prose by not using \bP0\b
+          JQ_P0='[.[] | select(.body | test("badge/P0|P0-red|\\[P0\\]|\\*\\*P0\\*\\*"; "i"))] | length'
           P0=$(echo "$ALL_COMMENTS" | jq "$JQ_P0")
           echo "p0_count=$P0" >> "$GITHUB_OUTPUT"
 
-          # Count P1 issues (Codex badge format or explicit P1 markers)
-          # Matches: ![P1 Badge], badge/P1, [P1], **P1**, explicit "P1" word
-          # Avoids false positives from phrases like "no major issues"
-          JQ_P1='[.[] | select(.body | test("badge/P1|P1-orange|\\[P1\\]|\\*\\*P1\\*\\*|\\bP1\\b"; "i"))] | length'
+          # Count P1 issues (Codex badge format markers only)
+          # Matches: badge/P1 (URL), P1-orange (badge color), [P1], **P1**
+          # Avoids false positives from mentions like "P0/P1" in prose by not using \bP1\b
+          JQ_P1='[.[] | select(.body | test("badge/P1|P1-orange|\\[P1\\]|\\*\\*P1\\*\\*"; "i"))] | length'
           P1=$(echo "$ALL_COMMENTS" | jq "$JQ_P1")
           echo "p1_count=$P1" >> "$GITHUB_OUTPUT"
 
