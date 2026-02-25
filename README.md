@@ -36,7 +36,7 @@ npx @littlebearapps/outlook-mcp
 
 ### 2. Register an Azure App
 
-You need a Microsoft Azure app registration to authenticate. See [Azure App Registration](#azure-app-registration) below for the full walkthrough, or if you've done this before:
+You need a Microsoft Azure app registration to authenticate. See the **[Azure Setup Guide](docs/guides/azure-setup.md)** for a detailed walkthrough (including first-time Azure account creation), or if you've done this before:
 
 1. Create a new app registration at [portal.azure.com](https://portal.azure.com/)
 2. Set redirect URI to `http://localhost:3333/auth/callback`
@@ -120,6 +120,8 @@ npm install
 ```
 
 ## Azure App Registration
+
+> **First time with Azure?** The [Azure Setup Guide](docs/guides/azure-setup.md) covers everything from creating an account to your first authentication, including billing setup and common pitfalls.
 
 ### Create the App
 
@@ -308,6 +310,15 @@ USE_TEST_MODE=true npm start
 4. Import and add tools to the `TOOLS` array in main `index.js`
 5. Add tests in `test/`
 6. Update `docs/quickrefs/tools-reference.md`
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Azure Setup Guide](docs/guides/azure-setup.md) | Azure account creation, app registration, permissions, and secrets |
+| [Tools Reference](docs/quickrefs/tools-reference.md) | All 55 tools with parameters |
+
+Full documentation: [docs/](docs/README.md)
 
 ## Contributing
 
