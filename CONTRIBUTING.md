@@ -1,6 +1,6 @@
 # Contributing to Outlook MCP Server
 
-Thank you for your interest in contributing to Outlook MCP Server! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing! This document provides guidelines and instructions.
 
 ## Code of Conduct
 
@@ -16,14 +16,14 @@ When creating a bug report, include:
 - Node.js version (`node --version`)
 - Operating system
 - Steps to reproduce
-- Expected vs actual behavior
+- Expected vs actual behaviour
 - Relevant error messages or logs
 
-Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md) when opening an issue.
+Use the [bug report template](https://github.com/littlebearapps/outlook-mcp/issues/new?template=bug_report.yml) when opening an issue.
 
 ### Suggesting Features
 
-Feature requests are welcome! Please use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md) and include:
+Feature requests are welcome! Use the [feature request template](https://github.com/littlebearapps/outlook-mcp/issues/new?template=feature_request.yml) and include:
 - Clear description of the feature
 - Use case / problem it solves
 - Proposed implementation (if any)
@@ -36,8 +36,9 @@ Feature requests are welcome! Please use the [feature request template](.github/
 3. **Make your changes** following the code style below
 4. **Add tests** for new functionality
 5. **Run tests**: `npm test`
-6. **Update documentation** if needed
-7. **Submit a pull request** using the PR template
+6. **Run linting**: `npm run lint`
+7. **Update documentation** if needed
+8. **Submit a pull request** using the PR template
 
 ## Development Setup
 
@@ -71,22 +72,16 @@ npm run inspect
 
 When adding new tools:
 
-1. Create a new module directory if needed (e.g., `contacts/`)
+1. Create a new module directory if needed (e.g. `tasks/`)
 2. Implement tool handlers in separate files
 3. Export tool definitions from the module's `index.js`
 4. Add tools to the `TOOLS` array in main `index.js`
 5. Add tests in the `test/` directory
 6. Update `docs/quickrefs/tools-reference.md`
 
-## Testing
-
-- Write tests for new functionality
-- Ensure existing tests pass: `npm test`
-- Use test mode for development: `USE_TEST_MODE=true npm start`
-
 ## Commit Messages
 
-Use clear, descriptive commit messages:
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 feat: add conversation export to MBOX format
@@ -95,10 +90,16 @@ docs: update installation instructions
 test: add tests for contacts module
 ```
 
+## Testing
+
+- Write tests for new functionality
+- Ensure existing tests pass: `npm test`
+- Use test mode for development: `USE_TEST_MODE=true npm start`
+
 ## Questions?
 
-If you have questions, feel free to open an issue for discussion.
+If you have questions, feel free to [open a discussion](https://github.com/littlebearapps/outlook-mcp/issues).
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).

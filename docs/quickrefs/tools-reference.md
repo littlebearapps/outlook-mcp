@@ -1,3 +1,8 @@
+---
+tags:
+  - mcp
+---
+
 # Tools Reference - outlook-mcp
 
 Quick reference for all 55 MCP tools across 9 modules.
