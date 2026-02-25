@@ -22,7 +22,7 @@ const homeDir =
 module.exports = {
   // Server information
   SERVER_NAME: 'outlook-assistant',
-  SERVER_VERSION: '1.1.0', // Bumped for token efficiency enhancements
+  SERVER_VERSION: '2.0.0',
 
   // Test mode setting
   USE_TEST_MODE: process.env.USE_TEST_MODE === 'true',

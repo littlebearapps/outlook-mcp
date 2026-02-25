@@ -11,14 +11,7 @@ function escapeODataString(str) {
   if (!str) return str;
 
   // Replace single quotes with double single quotes (OData escaping)
-  // And remove any special characters that could cause OData syntax errors
-  str = str.replace(/'/g, "''");
-
-  // Escape other potentially problematic characters
-  str = str.replace(/[(){}[\]:;,/?&=+*%$#@!^]/g, '');
-
-  console.error(`Escaped OData string: '${str}'`);
-  return str;
+  return str.replace(/'/g, "''");
 }
 
 /**

@@ -274,7 +274,7 @@ function exchangeCodeForTokens(code) {
             fs.writeFileSync(
               AUTH_CONFIG.tokenStorePath,
               JSON.stringify(tokenResponse, null, 2),
-              'utf8'
+              { encoding: 'utf8', mode: 0o600 }
             );
             console.log(`Tokens saved to ${AUTH_CONFIG.tokenStorePath}`);
 
@@ -303,7 +303,7 @@ function exchangeCodeForTokens(code) {
 
 // Start server
 const PORT = 3333;
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Authentication server running at http://localhost:${PORT}`);
   console.log(
     `Waiting for authentication callback at ${AUTH_CONFIG.redirectUri}`
