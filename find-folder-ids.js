@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const homePath = process.env.HOME || '/Users/ryaker';
+const homePath = process.env.HOME || require('os').homedir();
 const tokenPath = path.join(homePath, '.outlook-mcp-tokens.json');
 
 // Main function

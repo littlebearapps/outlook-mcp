@@ -23,19 +23,15 @@ async function callGraphAPI(
 ) {
   // For test tokens, we'll simulate the API call
   if (config.USE_TEST_MODE && accessToken.startsWith('test_access_token_')) {
-    console.error(`TEST MODE: Simulating ${method} ${path} API call`);
     return mockData.simulateGraphAPIResponse(method, path, data, queryParams);
   }
 
   try {
-    console.error(`Making real API call: ${method} ${path}`);
-
     // Check if path already contains the full URL (from nextLink)
     let finalUrl;
     if (path.startsWith('http://') || path.startsWith('https://')) {
       // Path is already a full URL (from pagination nextLink)
       finalUrl = path;
-      console.error(`Using full URL from nextLink: ${finalUrl}`);
     } else {
       // Build URL from path and queryParams
       // Encode path segments properly
@@ -73,12 +69,9 @@ async function callGraphAPI(
         if (queryString) {
           queryString = '?' + queryString;
         }
-
-        console.error(`Query string: ${queryString}`);
       }
 
       finalUrl = `${config.GRAPH_API_ENDPOINT}${encodedPath}${queryString}`;
-      console.error(`Full URL: ${finalUrl}`);
     }
 
     return new Promise((resolve, reject) => {
@@ -177,14 +170,10 @@ async function callGraphAPIPaginated(
       // Add items from this page
       if (response.value && Array.isArray(response.value)) {
         allItems.push(...response.value);
-        console.error(
-          `Pagination: Retrieved ${response.value.length} items, total so far: ${allItems.length}`
-        );
       }
 
       // Check if we've reached the desired count
       if (maxCount > 0 && allItems.length >= maxCount) {
-        console.error(`Pagination: Reached max count of ${maxCount}, stopping`);
         break;
       }
 
@@ -195,18 +184,11 @@ async function callGraphAPIPaginated(
         // Pass the full nextLink URL directly to callGraphAPI
         currentUrl = nextLink;
         currentParams = {}; // nextLink already contains all params
-        console.error(
-          `Pagination: Following nextLink, ${allItems.length} items so far`
-        );
       }
     } while (nextLink);
 
     // Trim to exact count if needed
     const finalItems = maxCount > 0 ? allItems.slice(0, maxCount) : allItems;
-
-    console.error(
-      `Pagination complete: Retrieved ${finalItems.length} total items`
-    );
 
     return {
       value: finalItems,
@@ -227,7 +209,6 @@ async function callGraphAPIPaginated(
 async function callGraphAPIRaw(accessToken, emailId) {
   // Test mode: return mock MIME content
   if (config.USE_TEST_MODE && accessToken.startsWith('test_access_token_')) {
-    console.error(`TEST MODE: Simulating MIME export for ${emailId}`);
     return mockData.getMockMimeContent
       ? mockData.getMockMimeContent(emailId)
       : `MIME-Version: 1.0\nContent-Type: text/plain\n\nTest email content for ${emailId}`;
@@ -236,8 +217,6 @@ async function callGraphAPIRaw(accessToken, emailId) {
   return new Promise((resolve, reject) => {
     const path = `me/messages/${encodeURIComponent(emailId)}/$value`;
     const finalUrl = `${config.GRAPH_API_ENDPOINT}${path}`;
-
-    console.error(`Fetching MIME content: ${finalUrl}`);
 
     const options = {
       method: 'GET',
@@ -259,7 +238,6 @@ async function callGraphAPIRaw(accessToken, emailId) {
 
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.error(`MIME content retrieved: ${responseData.length} bytes`);
           resolve(responseData);
         } else if (res.statusCode === 401) {
           reject(new Error('UNAUTHORIZED'));

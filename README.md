@@ -1,283 +1,212 @@
 # Outlook MCP Server
 
-A modular Model Context Protocol (MCP) server that connects Claude with Microsoft Outlook through the Microsoft Graph API.
+Give Claude full access to your Outlook email, calendar, and contacts.
 
 [![npm version](https://img.shields.io/npm/v/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
+[![CI](https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/littlebearapps/outlook-mcp/graph/badge.svg)](https://codecov.io/gh/littlebearapps/outlook-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
 
-[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/ryaker-outlook-mcp-badge.png)](https://mseep.ai/app/ryaker-outlook-mcp)
+A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that connects Claude and other AI assistants with Microsoft Outlook through the Microsoft Graph API. 55 tools across 9 modules for managing email, calendar, contacts, folders, rules, categories, settings, and more.
 
-Certified by MCPHub https://mcphub.com/mcp-servers/ryaker/outlook-mcp
+## Why Outlook MCP?
 
-## Features
-
-- **Email Management**: List, search, read, send, export emails with attachment support
-- **Email Headers & Forensics**: Get raw headers, MIME content for archival/analysis
-- **Conversation Threading**: List, retrieve, and export entire email threads
-- **Calendar Management**: List, create, accept, decline, cancel, and delete calendar events
-- **Folder Management**: List, create folders; move emails between folders; get folder statistics
-- **Rules Management**: List, create, and reorder inbox rules
-- **Contacts & People**: Full CRUD for contacts + relevance-based people search
-- **Categories & Focused Inbox**: Manage categories and Focused Inbox overrides
-- **Mailbox Settings**: Configure auto-replies, working hours, timezone
-- **Advanced Features**: Shared mailbox access, message flags, meeting room search
-- **Export Capabilities**: Export to MIME/EML, MBOX, Markdown, JSON, HTML formats
-- **Incremental Sync**: Delta queries for efficient email synchronization
-- **OAuth 2.0 Authentication**: Secure authentication with Microsoft Graph API
-- **Modular Architecture**: Clean separation of concerns for maintainability
-- **Test Mode**: Simulated responses for testing without real API calls
+| Without Outlook MCP | With Outlook MCP |
+|---------------------|------------------|
+| Switch between Claude and Outlook to manage email | Read, search, send, and export emails directly from Claude |
+| Manually search and export email threads | 17 email tools including search, threading, and bulk export |
+| Context-switch for calendar and contacts | Manage calendar events, contacts, and settings in one place |
+| Copy-paste email content into conversations | Claude reads your emails natively with full context |
+| No programmatic access to mailbox rules or categories | Create inbox rules, manage categories, configure auto-replies |
 
 ## Quick Start
 
-### Option A: Install from npm (Recommended)
+### 1. Install
 
 ```bash
 npm install -g @littlebearapps/outlook-mcp
 ```
 
-Or run directly with npx:
+Or run directly without installing:
 
 ```bash
 npx @littlebearapps/outlook-mcp
 ```
 
-### Option B: Install from Source
+### 2. Register an Azure App
 
-1. **Clone repository**: `git clone https://github.com/littlebearapps/outlook-mcp.git`
-2. **Install dependencies**: `npm install`
+You need a Microsoft Azure app registration to authenticate. See the **[Azure Setup Guide](docs/guides/azure-setup.md)** for a detailed walkthrough (including first-time Azure account creation), or if you've done this before:
 
-### Setup (Both Options)
+1. Create a new app registration at [portal.azure.com](https://portal.azure.com/)
+2. Set redirect URI to `http://localhost:3333/auth/callback`
+3. Add Microsoft Graph delegated permissions (Mail, Calendar, Contacts)
+4. Create a client secret and copy the **Value** (not the Secret ID)
 
-1. **Azure setup**: Register app in Azure Portal (see [Azure App Registration](#azure-app-registration--configuration))
-2. **Configure environment**: Copy `.env.example` to `.env` and add your Azure credentials
-3. **Configure Claude**: Update your Claude Desktop config with the server path
-4. **Start auth server**: `npm run auth-server`
-5. **Authenticate**: Use the authenticate tool in Claude to get the OAuth URL
-6. **Start using**: Access your Outlook data through Claude!
+### 3. Configure Claude Desktop
 
-## Directory Structure
+Add to your Claude Desktop config (`claude_desktop_config.json`):
 
-```
-outlook-mcp/
-├── index.js                 # Main entry point (55 tools)
-├── config.js                # Configuration settings
-├── outlook-auth-server.js   # OAuth server (port 3333)
-├── package.json
-├── auth/                    # Authentication module (3 tools)
-├── calendar/                # Calendar module (5 tools)
-├── email/                   # Email module (17 tools)
-│   ├── headers.js           # Email header retrieval
-│   ├── mime.js              # Raw MIME/EML content
-│   ├── conversations.js     # Thread listing/export
-│   └── ...                  # List, search, send, attachments, export
-├── folder/                  # Folder module (4 tools)
-├── rules/                   # Rules module (3 tools)
-├── contacts/                # Contacts module (7 tools)
-├── categories/              # Categories module (7 tools)
-├── settings/                # Settings module (5 tools)
-├── advanced/                # Advanced module (4 tools)
-└── utils/                   # Utility functions
-    ├── graph-api.js         # Microsoft Graph API helper
-    ├── odata-helpers.js     # OData query building
-    ├── field-presets.js     # API field selections
-    └── mock-data.js         # Test mode data
+```json
+{
+  "mcpServers": {
+    "outlook": {
+      "command": "npx",
+      "args": ["@littlebearapps/outlook-mcp"],
+      "env": {
+        "OUTLOOK_CLIENT_ID": "your-application-client-id",
+        "OUTLOOK_CLIENT_SECRET": "your-client-secret-VALUE"
+      }
+    }
+  }
+}
 ```
 
-## Tools Reference (55 tools)
+### 4. Authenticate
 
-See `docs/quickrefs/tools-reference.md` for complete parameter details.
+1. Start the auth server: `outlook-mcp-auth` (or `npx @littlebearapps/outlook-mcp-auth`)
+2. In Claude, use the `authenticate` tool to get an OAuth URL
+3. Open the URL, sign in with your Microsoft account, and grant permissions
+4. Tokens are saved locally and refresh automatically
 
-### Authentication (3 tools)
+## Features
 
-| Tool | Description |
-|------|-------------|
-| `about` | Returns server information and version |
-| `authenticate` | Initiates OAuth flow with Microsoft Graph API |
-| `check-auth-status` | Checks current authentication status |
+| Module | Tools | What You Can Do |
+|--------|------:|-----------------|
+| **Email** | 17 | List, search, read, send, mark read/unread, attachments, headers, MIME content, conversation threading, delta sync, bulk export |
+| **Calendar** | 5 | List upcoming events, create new events, decline, cancel, and delete |
+| **Contacts** | 7 | Full CRUD for personal contacts plus relevance-based people search |
+| **Categories** | 7 | Create and manage categories, apply to messages, configure Focused Inbox overrides |
+| **Settings** | 5 | Get/set automatic replies (out-of-office), working hours, and timezone |
+| **Folder** | 4 | List folders, create new folders, move emails between folders, folder statistics |
+| **Rules** | 3 | List, create, and reorder inbox rules |
+| **Advanced** | 4 | Shared mailbox access, message follow-up flags, meeting room search |
+| **Auth** | 3 | OAuth flow, authentication status, server info |
 
-### Email (17 tools)
+**55 tools total.** See the [Tools Reference](docs/quickrefs/tools-reference.md) for complete parameter details.
 
-| Tool | Description |
-|------|-------------|
-| `list-emails` | Lists recent emails from inbox |
-| `search-emails` | Search emails with filters or KQL |
-| `read-email` | Reads content of a specific email |
-| `send-email` | Composes and sends a new email |
-| `mark-as-read` | Marks email as read or unread |
-| `list-attachments` | Lists all attachments for an email |
-| `download-attachment` | Downloads attachment to disk |
-| `get-attachment-content` | Gets attachment metadata and content |
-| `export-email` | Export single email to file |
-| `batch-export-emails` | Export multiple emails to directory |
-| `list-emails-delta` | Incremental sync since last call |
-| `search-by-message-id` | Find email by Message-ID header |
-| `get-email-headers` | Get all headers for forensics/analysis |
-| `get-mime-content` | Get raw MIME/EML content |
-| `list-conversations` | List email threads |
-| `get-conversation` | Get all messages in a thread |
-| `export-conversation` | Export thread (EML/MBOX/MD/JSON/HTML) |
+### Export Formats
 
-### Calendar (5 tools)
+Export emails and conversations to multiple formats:
 
-| Tool | Description |
-|------|-------------|
-| `list-events` | Lists upcoming calendar events |
-| `create-event` | Creates a new calendar event |
-| `decline-event` | Declines a calendar event |
-| `cancel-event` | Cancels a calendar event |
-| `delete-event` | Deletes a calendar event |
-
-### Folder (4 tools)
-
-| Tool | Description |
-|------|-------------|
-| `list-folders` | Lists mail folders |
-| `create-folder` | Creates a new mail folder |
-| `move-emails` | Moves emails between folders |
-| `get-folder-stats` | Gets folder statistics |
-
-### Rules (3 tools)
-
-| Tool | Description |
-|------|-------------|
-| `list-rules` | Lists inbox rules |
-| `create-rule` | Creates a new inbox rule |
-| `edit-rule-sequence` | Changes rule execution order |
-
-### Contacts (7 tools)
-
-| Tool | Description |
-|------|-------------|
-| `list-contacts` | List personal contacts |
-| `search-contacts` | Search contacts by name/email |
-| `get-contact` | Get contact details |
-| `create-contact` | Create new contact |
-| `update-contact` | Update existing contact |
-| `delete-contact` | Delete contact |
-| `search-people` | Relevance-based people search |
-
-### Categories (7 tools)
-
-| Tool | Description |
-|------|-------------|
-| `list-categories` | List master categories |
-| `create-category` | Create new category |
-| `update-category` | Update category name/color |
-| `delete-category` | Delete category |
-| `apply-category` | Apply categories to message(s) |
-| `get-focused-inbox-overrides` | List Focused Inbox overrides |
-| `set-focused-inbox-override` | Set sender override |
-
-### Settings (5 tools)
-
-| Tool | Description |
-|------|-------------|
-| `get-mailbox-settings` | Get all mailbox settings |
-| `get-automatic-replies` | Get out-of-office config |
-| `set-automatic-replies` | Set out-of-office message |
-| `get-working-hours` | Get working hours config |
-| `set-working-hours` | Set working hours |
-
-### Advanced (4 tools)
-
-| Tool | Description |
-|------|-------------|
-| `access-shared-mailbox` | Read from shared mailbox |
-| `set-message-flag` | Flag for follow-up |
-| `clear-message-flag` | Clear follow-up flag |
-| `find-meeting-rooms` | Search meeting rooms |
+| Format | Use Case |
+|--------|----------|
+| `mime` / `eml` | Full MIME with headers — archival and forensics |
+| `mbox` | Unix MBOX archive — batch export conversations |
+| `markdown` | Human-readable — paste into documents |
+| `json` | Structured data — programmatic processing |
+| `html` | Formatted — visual archival of threads |
 
 ## Installation
 
 ### Prerequisites
-- Node.js 14.0.0 or higher
-- npm or yarn package manager
-- Azure account for app registration
 
-### Install Dependencies
+- **Node.js** 18.0.0 or higher
+- **npm** (included with Node.js)
+- **Azure account** for app registration ([free tier works](https://azure.microsoft.com/free/))
+
+### From npm (recommended)
 
 ```bash
+npm install -g @littlebearapps/outlook-mcp
+```
+
+### From source
+
+```bash
+git clone https://github.com/littlebearapps/outlook-mcp.git
+cd outlook-mcp
 npm install
 ```
 
-This will install the required dependencies including:
-- `@modelcontextprotocol/sdk` - MCP protocol implementation
-- `dotenv` - Environment variable management
+## Azure App Registration
 
-## Azure App Registration & Configuration
+> **First time with Azure?** The [Azure Setup Guide](docs/guides/azure-setup.md) covers everything from creating an account to your first authentication, including billing setup and common pitfalls.
 
-To use this MCP server you need to first register and configure an app in Azure Portal.
+### Create the App
 
-### App Registration
-
-1. Open [Azure Portal](https://portal.azure.com/) in your browser
+1. Open [Azure Portal](https://portal.azure.com/)
 2. Sign in with a Microsoft Work or Personal account
-3. Search for or click on "App registrations"
-4. Click on "New registration"
-5. Enter a name for the app, for example "Outlook MCP Server"
-6. Select the "Accounts in any organizational directory and personal Microsoft accounts" option
-7. In the "Redirect URI" section, select "Web" from the dropdown and enter `http://localhost:3333/auth/callback`
-8. Click on "Register"
-9. Copy the "Application (client) ID" for use in configuration
+3. Search for **App registrations** and click **New registration**
+4. Enter a name (e.g. "Outlook MCP Server")
+5. Select **Accounts in any organizational directory and personal Microsoft accounts**
+6. Set redirect URI: platform **Web**, URI `http://localhost:3333/auth/callback`
+7. Click **Register**
+8. Copy the **Application (client) ID**
 
-### App Permissions
+### Add Permissions
 
-1. From the app settings page, select "API permissions" under Manage
-2. Click "Add a permission" > "Microsoft Graph" > "Delegated permissions"
-3. Add these permissions:
+1. Go to **API permissions** > **Add a permission** > **Microsoft Graph** > **Delegated permissions**
+2. Add these permissions:
    - `offline_access`
    - `User.Read`
-   - `Mail.Read`, `Mail.Send`
+   - `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`
    - `Mail.Read.Shared` (for shared mailbox access)
    - `Calendars.Read`, `Calendars.ReadWrite`
    - `Contacts.Read`, `Contacts.ReadWrite`
    - `MailboxSettings.Read`, `MailboxSettings.ReadWrite`
    - `People.Read` (for people search)
    - `Place.Read.All` (for meeting room search)
-4. Click "Add permissions"
+3. Click **Add permissions**
 
-### Client Secret
+### Create a Client Secret
 
-1. Select "Certificates & secrets" under Manage
-2. Click "New client secret"
-3. Enter a description and select expiration time
-4. Click "Add"
-5. **Copy the secret VALUE immediately** (not the Secret ID)
+1. Go to **Certificates & secrets** > **New client secret**
+2. Enter a description and select expiration
+3. Click **Add**
+4. **Copy the secret Value immediately** — you won't be able to see it again. Use the **Value**, not the Secret ID.
 
 ## Configuration
 
-### 1. Environment Variables
+### Environment Variables
 
-Create a `.env` file by copying the example:
+Create a `.env` file from the example:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your Azure credentials:
+Edit with your Azure credentials:
 
 ```bash
-MS_CLIENT_ID=your-application-client-id-here
-MS_CLIENT_SECRET=your-client-secret-VALUE-here
+OUTLOOK_CLIENT_ID=your-application-client-id
+OUTLOOK_CLIENT_SECRET=your-client-secret-VALUE
 USE_TEST_MODE=false
 ```
 
-### 2. Claude Desktop Configuration
+> **Note:** The server also accepts `MS_CLIENT_ID` and `MS_CLIENT_SECRET` for backwards compatibility.
+
+### Claude Desktop Configuration
 
 Add to your Claude Desktop config:
 
 ```json
 {
   "mcpServers": {
-    "outlook-assistant": {
-      "command": "node",
-      "args": ["/absolute/path/to/outlook-mcp/index.js"],
+    "outlook": {
+      "command": "npx",
+      "args": ["@littlebearapps/outlook-mcp"],
       "env": {
-        "USE_TEST_MODE": "false",
-        "OUTLOOK_CLIENT_ID": "your-client-id-here",
-        "OUTLOOK_CLIENT_SECRET": "your-client-secret-here"
+        "OUTLOOK_CLIENT_ID": "your-application-client-id",
+        "OUTLOOK_CLIENT_SECRET": "your-client-secret-VALUE"
+      }
+    }
+  }
+}
+```
+
+Or if installed from source:
+
+```json
+{
+  "mcpServers": {
+    "outlook": {
+      "command": "node",
+      "args": ["/path/to/outlook-mcp/index.js"],
+      "env": {
+        "OUTLOOK_CLIENT_ID": "your-application-client-id",
+        "OUTLOOK_CLIENT_SECRET": "your-client-secret-VALUE"
       }
     }
   }
@@ -286,61 +215,111 @@ Add to your Claude Desktop config:
 
 ## Authentication Flow
 
-### Step 1: Start the Authentication Server
+### Step 1: Start the Auth Server
+
 ```bash
 npm run auth-server
 ```
-This starts a local server on port 3333 that handles the OAuth callback.
 
-### Step 2: Authenticate with Microsoft
+This starts a local server on port 3333 to handle the OAuth callback.
+
+### Step 2: Authenticate
+
 1. In Claude, use the `authenticate` tool
-2. Visit the provided URL in your browser
-3. Sign in with your Microsoft account
-4. Grant the requested permissions
-5. Tokens are saved to `~/.outlook-mcp-tokens.json`
+2. Open the provided URL in your browser
+3. Sign in with your Microsoft account and grant permissions
+4. Tokens are saved to `~/.outlook-mcp-tokens.json` and refresh automatically
+
+## Directory Structure
+
+```
+outlook-mcp/
+├── index.js                 # Main entry point (55 tools)
+├── config.js                # Configuration settings
+├── outlook-auth-server.js   # OAuth server (port 3333)
+├── auth/                    # Authentication module (3 tools)
+├── email/                   # Email module (17 tools)
+│   ├── headers.js           # Email header retrieval
+│   ├── mime.js              # Raw MIME/EML content
+│   ├── conversations.js     # Thread listing/export
+│   ├── attachments.js       # Attachment operations
+│   └── ...
+├── calendar/                # Calendar module (5 tools)
+├── contacts/                # Contacts module (7 tools)
+├── categories/              # Categories module (7 tools)
+├── settings/                # Settings module (5 tools)
+├── folder/                  # Folder module (4 tools)
+├── rules/                   # Rules module (3 tools)
+├── advanced/                # Advanced module (4 tools)
+└── utils/
+    ├── graph-api.js         # Microsoft Graph API client
+    ├── odata-helpers.js     # OData query building
+    ├── field-presets.js     # Token-efficient field selections
+    ├── response-formatter.js # Verbosity levels
+    └── mock-data.js         # Test mode data
+```
 
 ## Troubleshooting
 
-### Common Issues
+### "Cannot find module '@modelcontextprotocol/sdk/server/index.js'"
 
-#### "Cannot find module '@modelcontextprotocol/sdk/server/index.js'"
 ```bash
 npm install
 ```
 
-#### "Error: listen EADDRINUSE: address already in use :::3333"
+### "EADDRINUSE: address already in use :::3333"
+
 ```bash
 npx kill-port 3333
 npm run auth-server
 ```
 
-#### "Invalid client secret provided" (AADSTS7000215)
-You're using the Secret ID instead of the Secret Value. Go to Azure Portal > Certificates & secrets and copy the **Value** column.
+### "Invalid client secret" (AADSTS7000215)
 
-#### Authentication URL doesn't work
-Make sure the auth server is running first: `npm run auth-server`
+You're using the Secret **ID** instead of the Secret **Value**. Go to Azure Portal > Certificates & secrets and copy the **Value** column.
 
-#### get-folder-stats returns API error
-Fixed in December 2024: Removed invalid `sizeInBytes` property from Graph API query.
+### Authentication URL doesn't work
+
+Start the auth server first: `npm run auth-server`
+
+### Empty API responses
+
+Check authentication status with the `check-auth-status` tool. Tokens may have expired — re-authenticate if needed.
 
 ## Development
 
 ### Running Tests
+
 ```bash
-npm test
-./test-modular-server.sh    # Interactive MCP Inspector test
-./test-direct.sh            # Direct testing
+npm test                     # Jest unit tests
+npm run inspect              # MCP Inspector (interactive)
 ```
 
 ### Test Mode
-Set `USE_TEST_MODE=true` to use mock data without real API calls.
+
+Run with mock data (no real API calls):
+
+```bash
+USE_TEST_MODE=true npm start
+```
 
 ### Extending the Server
 
-1. Create new module directory (e.g., `contacts/`)
+1. Create a new module directory (e.g. `tasks/`)
 2. Implement tool handlers in separate files
-3. Export tool definitions from module `index.js`
-4. Import and add tools to `TOOLS` array in main `index.js`
+3. Export tool definitions from the module's `index.js`
+4. Import and add tools to the `TOOLS` array in main `index.js`
+5. Add tests in `test/`
+6. Update `docs/quickrefs/tools-reference.md`
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Azure Setup Guide](docs/guides/azure-setup.md) | Azure account creation, app registration, permissions, and secrets |
+| [Tools Reference](docs/quickrefs/tools-reference.md) | All 55 tools with parameters |
+
+Full documentation: [docs/](docs/README.md)
 
 ## Contributing
 
@@ -348,12 +327,12 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ## Security
 
-For security issues, please see our [Security Policy](SECURITY.md).
+For security concerns, please see our [Security Policy](SECURITY.md). Do not open public issues for vulnerabilities.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
-## License
+## About
 
-MIT - see [LICENSE](LICENSE) for details.
+Built and maintained by [Little Bear Apps](https://littlebearapps.com). Outlook MCP is open source under the [MIT License](LICENSE).
