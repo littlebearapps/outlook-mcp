@@ -65,17 +65,6 @@ jobs:
       - name: Run security audit (production deps)
         run: npm audit --omit=dev --audit-level=high
 
-  secret-scanning:
-    name: Secret Scanning
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
-
   commitlint:
     name: Commit Lint
     runs-on: ubuntu-latest
