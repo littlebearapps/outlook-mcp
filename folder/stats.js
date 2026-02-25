@@ -127,7 +127,7 @@ async function resolveFolderName(accessToken, folderName) {
         { $select: 'id' }
       );
       return response.id;
-    } catch (error) {
+    } catch (_error) {
       // Fall through to search
     }
   }

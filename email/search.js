@@ -375,7 +375,7 @@ function buildSearchParams(searchTerms, filterTerms, count, selectFields) {
     try {
       const afterDate = new Date(filterTerms.receivedAfter).toISOString();
       filterConditions.push(`receivedDateTime ge ${afterDate}`);
-    } catch (e) {
+    } catch (_e) {
       console.error(`Invalid receivedAfter date: ${filterTerms.receivedAfter}`);
     }
   }
@@ -384,7 +384,7 @@ function buildSearchParams(searchTerms, filterTerms, count, selectFields) {
     try {
       const beforeDate = new Date(filterTerms.receivedBefore).toISOString();
       filterConditions.push(`receivedDateTime le ${beforeDate}`);
-    } catch (e) {
+    } catch (_e) {
       console.error(
         `Invalid receivedBefore date: ${filterTerms.receivedBefore}`
       );
@@ -425,7 +425,7 @@ function addBooleanFilters(params, filterTerms) {
     try {
       const afterDate = new Date(filterTerms.receivedAfter).toISOString();
       filterConditions.push(`receivedDateTime ge ${afterDate}`);
-    } catch (e) {
+    } catch (_e) {
       console.error(`Invalid receivedAfter date: ${filterTerms.receivedAfter}`);
     }
   }
@@ -434,7 +434,7 @@ function addBooleanFilters(params, filterTerms) {
     try {
       const beforeDate = new Date(filterTerms.receivedBefore).toISOString();
       filterConditions.push(`receivedDateTime le ${beforeDate}`);
-    } catch (e) {
+    } catch (_e) {
       console.error(
         `Invalid receivedBefore date: ${filterTerms.receivedBefore}`
       );

@@ -429,7 +429,7 @@ async function handleFindMeetingRooms(args) {
         'GET'
       );
       rooms = placesResponse.value || [];
-    } catch (placesError) {
+    } catch (_placesError) {
       // Fall back to findRooms
       try {
         const roomsResponse = await callGraphAPI(
