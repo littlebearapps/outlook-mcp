@@ -60,10 +60,14 @@ utils/
 
 **Environment (.env)**:
 ```
-MS_CLIENT_ID=your-client-id
-MS_CLIENT_SECRET=your-secret-VALUE    # NOT the Secret ID!
+OUTLOOK_CLIENT_ID=your-client-id
+OUTLOOK_CLIENT_SECRET=your-secret-VALUE    # NOT the Secret ID!
 USE_TEST_MODE=false
 ```
+
+> The server reads `OUTLOOK_CLIENT_ID`/`OUTLOOK_CLIENT_SECRET` from `config.js`.
+> `MS_CLIENT_ID`/`MS_CLIENT_SECRET` are also accepted for backwards compatibility
+> (the auth server maps both).
 
 **Tokens stored at**: `~/.outlook-mcp-tokens.json`
 

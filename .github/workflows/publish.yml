@@ -22,7 +22,7 @@ on:
       - 'v*'
 
 permissions:
-  id-token: write   # Required for OIDC trusted publishing
+  id-token: write # Required for OIDC trusted publishing
   contents: read
 
 jobs:

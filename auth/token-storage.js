@@ -38,13 +38,10 @@ class TokenStorage {
     try {
       const tokenData = await fs.readFile(this.config.tokenStorePath, 'utf8');
       this.tokens = JSON.parse(tokenData);
-      console.log('Tokens loaded from file.');
       return this.tokens;
     } catch (error) {
-      if (error.code === 'ENOENT') {
-        console.log('Token file not found. No tokens loaded.');
-      } else {
-        console.error('Error loading token cache:', error);
+      if (error.code !== 'ENOENT') {
+        console.error('Error loading token cache:', error.message);
       }
       this.tokens = null;
       return null;
@@ -53,19 +50,17 @@ class TokenStorage {
 
   async _saveTokensToFile() {
     if (!this.tokens) {
-      console.warn('No tokens to save.');
       return false;
     }
     try {
       await fs.writeFile(
         this.config.tokenStorePath,
-        JSON.stringify(this.tokens, null, 2)
+        JSON.stringify(this.tokens, null, 2),
+        { mode: 0o600 }
       );
-      console.log('Tokens saved successfully.');
-      // return true; // No longer returning boolean, will throw on error.
     } catch (error) {
-      console.error('Error saving token cache:', error);
-      throw error; // Propagate the error
+      console.error('Error saving token cache:', error.message);
+      throw error;
     }
   }
 

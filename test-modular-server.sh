@@ -1,7 +1,9 @@
 #!/bin/bash
 # Test the modular Outlook MCP server using MCP Inspector
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "Testing modular Outlook MCP server..."
 
 # Use the MCP Inspector to test the server
-npx @modelcontextprotocol/inspector node "/Users/ryaker/Documents/LocalDev/MCP/Projects/OutlookAssistant/modular/index.js"
+npx @modelcontextprotocol/inspector node "$SCRIPT_DIR/index.js"
