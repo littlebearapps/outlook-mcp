@@ -6,36 +6,36 @@ version: 2
 
 updates:
   # npm dependencies
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     commit-message:
-      prefix: "chore(deps):"
+      prefix: 'chore(deps):'
     groups:
       dev-dependencies:
         patterns:
-          - "eslint*"
-          - "prettier"
-          - "jest"
-          - "@commitlint/*"
+          - 'eslint*'
+          - 'prettier'
+          - 'jest'
+          - '@commitlint/*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
     open-pull-requests-limit: 10
     labels:
-      - "dependencies"
+      - 'dependencies'
 
   # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     commit-message:
-      prefix: "chore(deps):"
+      prefix: 'chore(deps):'
     open-pull-requests-limit: 5
     labels:
-      - "dependencies"
-      - "github-actions"
+      - 'dependencies'
+      - 'github-actions'

@@ -1,7 +1,7 @@
 name: Bug Report
 description: Report a bug or unexpected behaviour
-title: "[BUG] "
-labels: ["bug"]
+title: '[BUG] '
+labels: ['bug']
 body:
   - type: markdown
     attributes:
@@ -50,7 +50,7 @@ body:
     attributes:
       label: outlook-mcp version
       description: Run `outlook-mcp --version` or check package.json
-      placeholder: "2.0.0"
+      placeholder: '2.0.0'
     validations:
       required: true
 
@@ -59,7 +59,7 @@ body:
     attributes:
       label: Node.js version
       description: Run `node --version`
-      placeholder: "v20.0.0"
+      placeholder: 'v20.0.0'
     validations:
       required: true
 
