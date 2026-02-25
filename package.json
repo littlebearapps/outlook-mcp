@@ -73,6 +73,16 @@
     "prettier": "^3.4.2",
     "supertest": "^7.0.0"
   },
+  "jest": {
+    "coverageThreshold": {
+      "global": {
+        "statements": 45,
+        "branches": 35,
+        "functions": 35,
+        "lines": 45
+      }
+    }
+  },
   "engines": {
     "node": ">=18.0.0"
   }

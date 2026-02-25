@@ -73,16 +73,14 @@ describe('TokenStorage', () => {
       expect(tokenStorage.tokens).toEqual(mockTokens);
     });
 
-    it('should return null and log if file does not exist (ENOENT)', async () => {
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+    it('should return null silently if file does not exist (ENOENT)', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       fs.readFile.mockRejectedValue({ code: 'ENOENT' });
       const loaded = await tokenStorage._loadTokensFromFile();
       expect(loaded).toBeNull();
       expect(tokenStorage.tokens).toBeNull();
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Token file not found. No tokens loaded.'
-      );
-      consoleLogSpy.mockRestore();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
 
     it('should return null and log error for other read errors', async () => {
@@ -93,31 +91,28 @@ describe('TokenStorage', () => {
       expect(tokenStorage.tokens).toBeNull();
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Error loading token cache:',
-        expect.any(Error)
+        'Read error'
       );
       consoleErrorSpy.mockRestore();
     });
   });
 
   describe('_saveTokensToFile', () => {
-    it('should write tokens to file', async () => {
+    it('should write tokens to file with restrictive permissions', async () => {
       tokenStorage.tokens = { access_token: 'save_token' };
       await tokenStorage._saveTokensToFile();
       expect(fs.writeFile).toHaveBeenCalledWith(
         tokenStorePath,
-        JSON.stringify(tokenStorage.tokens, null, 2)
+        JSON.stringify(tokenStorage.tokens, null, 2),
+        { mode: 0o600 }
       );
     });
 
-    it('should log warning if no tokens to save', async () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    it('should return false silently if no tokens to save', async () => {
       tokenStorage.tokens = null;
-      // Since it now returns false (or throws if we change it more), we expect it to return false
       const result = await tokenStorage._saveTokensToFile();
-      expect(result).toBe(false); // As per current _saveTokensToFile when tokens are null
+      expect(result).toBe(false);
       expect(fs.writeFile).not.toHaveBeenCalled();
-      expect(consoleWarnSpy).toHaveBeenCalledWith('No tokens to save.');
-      consoleWarnSpy.mockRestore();
     });
 
     it('should throw error if fs.writeFile fails', async () => {
