@@ -5,6 +5,7 @@ Give Claude full access to your Outlook email, calendar, and contacts.
 [![npm version](https://img.shields.io/npm/v/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
 [![CI](https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/littlebearapps/outlook-mcp/graph/badge.svg)](https://codecov.io/gh/littlebearapps/outlook-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
 
