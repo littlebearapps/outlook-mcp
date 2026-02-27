@@ -222,7 +222,7 @@ Auth server listening on http://localhost:3333
 
 ### 2. Authenticate
 
-In Claude, use the `authenticate` tool. It returns a Microsoft login URL.
+In Claude, use the `auth` tool with `action=authenticate`. It returns a Microsoft login URL.
 
 1. Open the URL in your browser
 2. Sign in with your Microsoft account
@@ -233,13 +233,13 @@ Tokens are saved to `~/.outlook-mcp-tokens.json` and refresh automatically.
 
 ### 3. Verify Access
 
-In Claude, use the `check-auth-status` tool. You should see:
+In Claude, use the `auth` tool with `action=status`. You should see:
 
 ```
 Authenticated as: your.email@outlook.com
 ```
 
-Then try `list-emails` to confirm email access is working.
+Then try `search-emails` to confirm email access is working.
 
 ## Troubleshooting
 
@@ -288,7 +288,7 @@ Then try `list-emails` to confirm email access is working.
 ```bash
 rm ~/.outlook-mcp-tokens.json
 npm run auth-server
-# Then use the authenticate tool in Claude
+# Then use the auth tool with action=authenticate in Claude
 ```
 
 ---
@@ -307,5 +307,5 @@ npm run auth-server
 ## What's Next?
 
 - [README](../../README.md) — Full feature overview and configuration
-- [Tools Reference](../quickrefs/tools-reference.md) — All 55 tools with parameters
+- [Tools Reference](../quickrefs/tools-reference.md) — All 20 tools with parameters
 - [Back to Docs](../README.md)

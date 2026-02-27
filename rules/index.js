@@ -6,7 +6,7 @@ const handleCreateRule = require('./create');
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 
-// Import getInboxRules for the edit sequence tool
+// Import getInboxRules for the reorder action
 const { getInboxRules } = require('./list');
 
 /**
@@ -83,7 +83,7 @@ async function handleEditRuleSequence(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -100,88 +100,87 @@ async function handleEditRuleSequence(args) {
   }
 }
 
-// Rules management tool definitions
+// Consolidated rules tool definition
 const rulesTools = [
   {
-    name: 'list-rules',
-    description: 'Lists inbox rules in your Outlook account',
+    name: 'manage-rules',
+    description:
+      'Manage inbox rules. action=list (default) lists rules. action=create creates a new rule. action=reorder changes rule execution priority.',
+    annotations: {
+      title: 'Inbox Rules',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'create', 'reorder'],
+          description: 'Action to perform (default: list)',
+        },
+        // list params
         includeDetails: {
           type: 'boolean',
-          description: 'Include detailed rule conditions and actions',
+          description:
+            'Include detailed rule conditions and actions (action=list)',
         },
-      },
-      required: [],
-    },
-    handler: handleListRules,
-  },
-  {
-    name: 'create-rule',
-    description: 'Creates a new inbox rule',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // create params
         name: {
           type: 'string',
-          description: 'Name of the rule to create',
+          description: 'Name of the rule to create (action=create, required)',
         },
         fromAddresses: {
           type: 'string',
-          description:
-            'Comma-separated list of sender email addresses for the rule',
+          description: 'Comma-separated sender email addresses (action=create)',
         },
         containsSubject: {
           type: 'string',
-          description: 'Subject text the email must contain',
+          description: 'Subject text the email must contain (action=create)',
         },
         hasAttachments: {
           type: 'boolean',
-          description: 'Whether the rule applies to emails with attachments',
+          description: 'Apply to emails with attachments (action=create)',
         },
         moveToFolder: {
           type: 'string',
-          description: 'Name of the folder to move matching emails to',
+          description: 'Folder to move matching emails to (action=create)',
         },
         markAsRead: {
           type: 'boolean',
-          description: 'Whether to mark matching emails as read',
+          description: 'Mark matching emails as read (action=create)',
         },
         isEnabled: {
           type: 'boolean',
           description:
-            'Whether the rule should be enabled after creation (default: true)',
+            'Enable rule after creation, default: true (action=create)',
         },
         sequence: {
           type: 'number',
           description:
-            'Order in which the rule is executed (lower numbers run first, default: 100)',
+            'Execution order, lower numbers run first (action=create default: 100, action=reorder required)',
         },
-      },
-      required: ['name'],
-    },
-    handler: handleCreateRule,
-  },
-  {
-    name: 'edit-rule-sequence',
-    description: 'Changes the execution order of an existing inbox rule',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // reorder params
         ruleName: {
           type: 'string',
-          description: 'Name of the rule to modify',
-        },
-        sequence: {
-          type: 'number',
-          description:
-            'New sequence value for the rule (lower numbers run first)',
+          description: 'Name of the rule to reorder (action=reorder, required)',
         },
       },
-      required: ['ruleName', 'sequence'],
+      required: [],
     },
-    handler: handleEditRuleSequence,
+    handler: async (args) => {
+      const action = args.action || 'list';
+      switch (action) {
+        case 'create':
+          return handleCreateRule(args);
+        case 'reorder':
+          return handleEditRuleSequence(args);
+        case 'list':
+        default:
+          return handleListRules(args);
+      }
+    },
   },
 ];
 

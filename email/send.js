@@ -4,6 +4,11 @@
 const _config = require('../config'); // Reserved for future use
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
+const {
+  checkRateLimit,
+  checkRecipientAllowlist,
+  formatDryRunPreview,
+} = require('../utils/safety');
 
 /**
  * Send email handler
@@ -19,6 +24,7 @@ async function handleSendEmail(args) {
     body,
     importance = 'normal',
     saveToSentItems = true,
+    dryRun = false,
   } = args;
 
   // Validate required parameters
@@ -56,9 +62,6 @@ async function handleSendEmail(args) {
   }
 
   try {
-    // Get access token
-    const accessToken = await ensureAuthenticated();
-
     // Format recipients
     const toRecipients = to.split(',').map((email) => {
       email = email.trim();
@@ -91,6 +94,11 @@ async function handleSendEmail(args) {
         })
       : [];
 
+    // Check recipient allowlist (all recipients combined)
+    const allRecipients = [...toRecipients, ...ccRecipients, ...bccRecipients];
+    const allowlistError = checkRecipientAllowlist(allRecipients);
+    if (allowlistError) return allowlistError;
+
     // Prepare email object
     const emailObject = {
       message: {
@@ -106,6 +114,18 @@ async function handleSendEmail(args) {
       },
       saveToSentItems,
     };
+
+    // Dry-run mode: return preview without sending
+    if (dryRun) {
+      return formatDryRunPreview(emailObject);
+    }
+
+    // Check rate limit (only for actual sends, not dry runs)
+    const rateLimitError = checkRateLimit('send-email');
+    if (rateLimitError) return rateLimitError;
+
+    // Get access token
+    const accessToken = await ensureAuthenticated();
 
     // Make API call to send email
     await callGraphAPI(accessToken, 'POST', 'me/sendMail', emailObject);
@@ -124,7 +144,7 @@ async function handleSendEmail(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };

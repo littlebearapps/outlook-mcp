@@ -11,14 +11,21 @@ Built by [Little Bear Apps](https://littlebearapps.com).
 - **License**: MIT
 - **Node.js**: >= 18.0.0
 - **Authentication**: OAuth 2.0 with Microsoft Graph API (requires Azure app registration)
-- **Tools**: 55 tools across 9 modules
+- **Tools**: 20 consolidated tools across 9 modules (reduced from 55 for optimal AI performance)
 
 ## Why Outlook MCP?
 
 - Read, search, send, and export emails directly from Claude instead of switching apps
-- 17 email tools including search, conversation threading, and bulk export
+- 6 email tools covering search, conversations, attachments, and bulk export
 - Manage calendar events, contacts, rules, categories, and mailbox settings in one place
 - Export to multiple formats: MIME/EML, MBOX, Markdown, JSON, HTML
+
+## Safety & Token Efficiency
+
+- **MCP safety annotations** on all 20 tools — AI clients auto-approve reads and prompt for destructive operations
+- **Send-email protections**: dry-run preview, session rate limiting, recipient allowlist
+- **Token-optimised**: 20 tools instead of 55 saves ~11,000 tokens per turn (~64% reduction), improving AI accuracy and context efficiency
+- These safeguards reduce risk but are not foolproof — always review actions before approving
 
 ## Quick Start
 
@@ -41,21 +48,21 @@ Requires an Azure app registration with Microsoft Graph delegated permissions. S
 
 ## Tool Categories
 
-- **Authentication (3 tools)**: OAuth flow, auth status checking
-- **Email (17 tools)**: List, search, read, send, attachments, headers, MIME, conversations, delta sync, bulk export
-- **Calendar (5 tools)**: List, create, decline, cancel, delete events
-- **Contacts (7 tools)**: CRUD operations, people search
-- **Folders (4 tools)**: List, create, move emails, folder stats
-- **Rules (3 tools)**: Inbox rule management
-- **Categories (7 tools)**: Category and Focused Inbox management
-- **Settings (5 tools)**: Auto-replies, working hours, timezone
-- **Advanced (4 tools)**: Shared mailbox, message flags, meeting rooms
+- **Authentication (1 tool)**: `auth` — OAuth flow, status, about
+- **Email (6 tools)**: `search-emails`, `read-email`, `send-email`, `update-email`, `attachments`, `export`
+- **Calendar (3 tools)**: `list-events`, `create-event`, `manage-event`
+- **Contacts (2 tools)**: `manage-contact`, `search-people`
+- **Folders (1 tool)**: `folders` — list, create, move, stats
+- **Rules (1 tool)**: `manage-rules` — list, create, reorder
+- **Categories (3 tools)**: `manage-category`, `apply-category`, `manage-focused-inbox`
+- **Settings (1 tool)**: `mailbox-settings` — get, set auto-replies, set working hours
+- **Advanced (2 tools)**: `access-shared-mailbox`, `find-meeting-rooms`
 
 ## Documentation
 
 - [README](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/README.md): Full documentation including setup, Azure configuration, and usage
-- [Tools Reference](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/docs/quickrefs/tools-reference.md): Complete list of all 55 tools with parameters
+- [Tools Reference](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/docs/quickrefs/tools-reference.md): All 20 tools with parameters and safety annotations
 - [CLAUDE.md](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/CLAUDE.md): Quick reference for development
 - [CONTRIBUTING](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/CONTRIBUTING.md): Contribution guidelines
 - [CHANGELOG](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/CHANGELOG.md): Version history
-- [SECURITY](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/SECURITY.md): Security policy and token handling
+- [SECURITY](https://raw.githubusercontent.com/littlebearapps/outlook-mcp/main/SECURITY.md): Security policy, token handling, and MCP safety controls

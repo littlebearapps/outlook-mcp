@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-02
+
+### Changed
+
+- **Tool consolidation: 55 → 20 tools** (~64% reduction, ~11,000 tokens saved per turn)
+  - Email: 17 → 6 (`search-emails`, `read-email`, `send-email`, `update-email`, `attachments`, `export`)
+  - Calendar: 5 → 3 (`list-events`, `create-event`, `manage-event`)
+  - Contacts: 7 → 2 (`manage-contact`, `search-people`)
+  - Categories: 7 → 3 (`manage-category`, `apply-category`, `manage-focused-inbox`)
+  - Settings: 5 → 1 (`mailbox-settings`)
+  - Folders: 4 → 1 (`folders`)
+  - Rules: 3 → 1 (`manage-rules`)
+  - Auth: 3 → 1 (`auth`)
+  - Advanced: 4 → 2 (`access-shared-mailbox`, `find-meeting-rooms`)
+- Consolidated tools use action parameters (STRAP pattern) instead of separate tool definitions
+- Preferred env vars renamed to `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET` (old `MS_*` names still accepted)
+
+### Added
+
+- **MCP safety annotations** on all 20 tools (`readOnlyHint`, `destructiveHint`, `idempotentHint`)
+  - 6 read-only tools auto-approved by Claude Code
+  - 2 destructive tools (`send-email`, `manage-event`) prompt for confirmation
+- **send-email safety controls**:
+  - `dryRun` parameter — preview composed emails without sending
+  - Session rate limiting via `OUTLOOK_MAX_EMAILS_PER_SESSION` env var
+  - Recipient allowlist via `OUTLOOK_ALLOWED_RECIPIENTS` env var
+- `utils/safety.js` — shared safety utilities (rate limiter, allowlist checker, dry-run formatter)
+- `update-email` tool — unified mark-read, flag, unflag, and complete operations
+
+### Removed
+
+- 35 individual tools replaced by consolidated equivalents (see consolidation map in CLAUDE.md)
+- `set-message-flag` and `clear-message-flag` from Advanced module (merged into `update-email`)
+
 ## [2.1.0] - 2026-02
 
 ### Changed

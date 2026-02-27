@@ -85,40 +85,43 @@ async function handleCheckAuthStatus() {
 // Tool definitions
 const authTools = [
   {
-    name: 'about',
-    description: 'Returns information about this Outlook Assistant server',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: [],
+    name: 'auth',
+    description:
+      'Manage authentication with Microsoft Graph API. action=status (default) checks auth state, action=authenticate starts OAuth flow, action=about shows server info.',
+    annotations: {
+      title: 'Authentication',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
     },
-    handler: handleAbout,
-  },
-  {
-    name: 'authenticate',
-    description: 'Authenticate with Microsoft Graph API to access Outlook data',
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['status', 'authenticate', 'about'],
+          description: 'Action to perform (default: status)',
+        },
         force: {
           type: 'boolean',
-          description: 'Force re-authentication even if already authenticated',
+          description:
+            'Force re-authentication even if already authenticated (action=authenticate only)',
         },
       },
       required: [],
     },
-    handler: handleAuthenticate,
-  },
-  {
-    name: 'check-auth-status',
-    description:
-      'Check the current authentication status with Microsoft Graph API',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: [],
+    handler: async (args) => {
+      const action = args.action || 'status';
+      switch (action) {
+        case 'authenticate':
+          return handleAuthenticate(args);
+        case 'about':
+          return handleAbout();
+        case 'status':
+        default:
+          return handleCheckAuthStatus();
+      }
     },
-    handler: handleCheckAuthStatus,
   },
 ];
 

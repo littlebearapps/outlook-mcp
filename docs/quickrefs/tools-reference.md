@@ -5,121 +5,124 @@ tags:
 
 # Tools Reference - outlook-mcp
 
-Quick reference for all 55 MCP tools across 9 modules.
+Quick reference for all 20 consolidated MCP tools across 9 modules. Each tool includes MCP safety annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`).
 
-## Authentication (3 tools)
+## Authentication (1 tool)
 
-| Tool | Description |
-|------|-------------|
-| `about` | Server info and version |
-| `authenticate` | Start OAuth flow, returns auth URL |
-| `check-auth-status` | Check if authenticated |
+| Tool | Actions | Safety |
+|------|---------|--------|
+| `auth` | `status` (default), `authenticate`, `about` | moderate write |
 
-## Email (17 tools)
+## Email (6 tools)
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list-emails` | List inbox emails | `folder`, `count`, `outputVerbosity` |
-| `search-emails` | Search with filters/KQL | `query`, `from`, `to`, `subject`, `kqlQuery` |
-| `read-email` | Read email content | `id`, `includeHeaders`, `outputVerbosity` |
-| `send-email` | Send new email | `to`, `cc`, `bcc`, `subject`, `body` |
-| `mark-as-read` | Mark read/unread | `id`, `isRead` |
-| `list-attachments` | List email attachments | `messageId` |
-| `download-attachment` | Download to disk | `messageId`, `attachmentId`, `savePath` |
-| `get-attachment-content` | Get attachment data | `messageId`, `attachmentId` |
-| `export-email` | Export single email | `id`, `format`, `savePath` |
-| `batch-export-emails` | Export multiple emails | `emailIds`, `format`, `outputDir` |
-| `list-emails-delta` | Incremental sync | `folder`, `deltaToken`, `maxResults` |
-| `search-by-message-id` | Find by Message-ID | `messageId` |
-| `get-email-headers` | Get all headers (forensics) | `id`, `groupByType`, `importantOnly` |
-| `get-mime-content` | Get raw MIME/EML content | `id`, `headersOnly`, `base64`, `maxSize` |
-| `list-conversations` | List email threads | `folder`, `count`, `outputVerbosity` |
-| `get-conversation` | Get all messages in thread | `conversationId`, `includeHeaders` |
-| `export-conversation` | Export thread to file | `conversationId`, `format`, `outputDir` |
+| Tool | Description | Safety | Key Parameters |
+|------|-------------|--------|----------------|
+| `search-emails` | Search, list, delta sync, conversations | read-only | `query`, `from`, `to`, `folder`, `deltaMode`, `conversationId`, `groupByConversation`, `internetMessageId` |
+| `read-email` | Read content or forensic headers | read-only | `id`, `headersMode`, `groupByType`, `importantOnly` |
+| `send-email` | Send email with safety controls | **destructive** | `to`, `subject`, `body`, `dryRun`, `cc`, `bcc`, `importance` |
+| `update-email` | Mark read/unread, flag/unflag/complete | idempotent | `action` (required), `id`, `ids`, `dueDateTime` |
+| `attachments` | List, view, or download attachments | moderate write | `action` (`list`/`view`/`download`), `messageId`, `attachmentId` |
+| `export` | Export emails to various formats | moderate write | `target` (`message`/`messages`/`conversation`/`mime`), `id`, `format`, `outputDir` |
 
-### Export Formats
+### search-emails modes
 
-| Format | Description |
-|--------|-------------|
-| `mime`/`eml` | Full MIME format with headers |
-| `mbox` | Unix MBOX archive (conversations) |
-| `markdown` | Human-readable markdown |
-| `json` | Structured JSON |
-| `html` | Formatted HTML (conversations) |
+| Mode | Trigger | Description |
+|------|---------|-------------|
+| List | No query params | Lists recent emails (like old `list-emails`) |
+| Search | `query`, `from`, `to`, etc. | Full search with filters and KQL |
+| Delta | `deltaMode: true` | Incremental sync, returns `deltaToken` |
+| Conversation list | `groupByConversation: true` | Groups by thread |
+| Conversation get | `conversationId` | All messages in a thread |
+| Message-ID lookup | `internetMessageId` | Find by RFC Message-ID header |
 
-## Calendar (5 tools)
+### update-email actions
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list-events` | List upcoming events | `count` |
-| `create-event` | Create new event | `subject`, `start`, `end`, `attendees`, `body` |
-| `decline-event` | Decline invitation | `eventId`, `comment` |
-| `cancel-event` | Cancel event you organized | `eventId`, `comment` |
-| `delete-event` | Delete from calendar | `eventId` |
+| Action | Description | Params |
+|--------|-------------|--------|
+| `mark-read` | Mark as read | `id` (single) |
+| `mark-unread` | Mark as unread | `id` (single) |
+| `flag` | Flag for follow-up | `id` or `ids` (batch), `dueDateTime`, `startDateTime` |
+| `unflag` | Clear flag | `id` or `ids` (batch) |
+| `complete` | Mark flag as complete | `id` or `ids` (batch) |
 
-## Folder (4 tools)
+### Export formats
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list-folders` | List mail folders | `includeItemCounts`, `includeChildren` |
-| `create-folder` | Create new folder | `name`, `parentFolder` |
-| `move-emails` | Move emails | `emailIds`, `targetFolder`, `sourceFolder` |
-| `get-folder-stats` | Folder statistics | `folder`, `outputVerbosity` |
+| Format | Use Case |
+|--------|----------|
+| `mime` / `eml` | Full MIME with headers — archival and forensics |
+| `mbox` | Unix MBOX archive — batch export conversations |
+| `markdown` | Human-readable — paste into documents |
+| `json` | Structured data — programmatic processing |
+| `html` | Formatted — visual archival of threads |
 
-## Rules (3 tools)
+## Calendar (3 tools)
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list-rules` | List inbox rules | `includeDetails` |
-| `create-rule` | Create new rule | `name`, `fromAddresses`, `moveToFolder` |
-| `edit-rule-sequence` | Change rule order | `ruleName`, `sequence` |
+| Tool | Description | Safety | Key Parameters |
+|------|-------------|--------|----------------|
+| `list-events` | List upcoming events | read-only | `count` |
+| `create-event` | Create new event | moderate write | `subject`, `start`, `end`, `attendees`, `body` |
+| `manage-event` | Decline, cancel, or delete | **destructive** | `action` (`decline`/`cancel`/`delete`), `eventId`, `comment` |
 
-## Contacts (7 tools)
+## Folder (1 tool)
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list-contacts` | List personal contacts | `count`, `outputVerbosity` |
-| `search-contacts` | Search contacts | `query`, `count` |
-| `get-contact` | Get contact details | `id` |
-| `create-contact` | Create new contact | `givenName`, `surname`, `emailAddresses` |
-| `update-contact` | Update contact | `id`, (any field) |
-| `delete-contact` | Delete contact | `id` |
-| `search-people` | Relevance-based search | `query`, `count` |
+| Tool | Actions | Safety | Key Parameters |
+|------|---------|--------|----------------|
+| `folders` | `list` (default), `create`, `move`, `stats` | moderate write | `name`, `emailIds`, `targetFolder`, `folder`, `outputVerbosity` |
 
-## Categories (7 tools)
+## Rules (1 tool)
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `list-categories` | List master categories | `outputVerbosity` |
-| `create-category` | Create category | `displayName`, `color` |
-| `update-category` | Update category | `id`, `displayName`, `color` |
-| `delete-category` | Delete category | `id` |
-| `apply-category` | Apply to message(s) | `messageId`, `categories`, `action` |
-| `get-focused-inbox-overrides` | List Focused Inbox rules | `outputVerbosity` |
-| `set-focused-inbox-override` | Set sender override | `emailAddress`, `classifyAs` |
+| Tool | Actions | Safety | Key Parameters |
+|------|---------|--------|----------------|
+| `manage-rules` | `list` (default), `create`, `reorder` | moderate write | `name`, `fromAddresses`, `moveToFolder`, `ruleName`, `sequence` |
 
-### Category Colors
+## Contacts (2 tools)
+
+| Tool | Description | Safety | Key Parameters |
+|------|-------------|--------|----------------|
+| `manage-contact` | Full CRUD: `list` (default), `search`, `get`, `create`, `update`, `delete` | moderate write | `action`, `query`, `id`, `displayName`, `email`, `count` |
+| `search-people` | Relevance-based search (People API) | read-only | `query`, `count` |
+
+## Categories (3 tools)
+
+| Tool | Description | Safety | Key Parameters |
+|------|-------------|--------|----------------|
+| `manage-category` | CRUD: `list` (default), `create`, `update`, `delete` | moderate write | `action`, `displayName`, `color`, `id` |
+| `apply-category` | Apply/add/remove categories on messages | moderate write | `messageId`/`messageIds`, `categories`, `action` |
+| `manage-focused-inbox` | Focused Inbox overrides: `list` (default), `set`, `delete` | moderate write | `action`, `emailAddress`, `classifyAs` |
+
+### Category colours
 
 `preset0`-`preset24`: Red, Orange, Brown, Yellow, Green, Teal, Olive, Blue, Purple, etc.
 
-## Settings (5 tools)
+## Settings (1 tool)
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `get-mailbox-settings` | All mailbox settings | `section` |
-| `get-automatic-replies` | Get out-of-office config | - |
-| `set-automatic-replies` | Set out-of-office | `enabled`, `startDateTime`, `endDateTime`, `internalReplyMessage` |
-| `get-working-hours` | Get working hours | - |
-| `set-working-hours` | Set working hours | `startTime`, `endTime`, `daysOfWeek`, `timeZone` |
+| Tool | Actions | Safety | Key Parameters |
+|------|---------|--------|----------------|
+| `mailbox-settings` | `get` (default), `set-auto-replies`, `set-working-hours` | idempotent | `section`, `enabled`, `startDateTime`, `endDateTime`, `internalReplyMessage`, `startTime`, `endTime`, `daysOfWeek` |
 
-## Advanced (4 tools)
+## Advanced (2 tools)
 
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `access-shared-mailbox` | Read shared mailbox | `sharedMailbox`, `folder`, `count` |
-| `set-message-flag` | Flag for follow-up | `messageId`, `dueDateTime` |
-| `clear-message-flag` | Clear flag | `messageId`, `markComplete` |
-| `find-meeting-rooms` | Search meeting rooms | `query`, `building`, `capacity` |
+| Tool | Description | Safety | Key Parameters |
+|------|-------------|--------|----------------|
+| `access-shared-mailbox` | Read shared mailbox | read-only | `sharedMailbox`, `folder`, `count` |
+| `find-meeting-rooms` | Search meeting rooms | read-only | `query`, `building`, `capacity` |
+
+## Safety Annotations
+
+| Category | Tools | Client Behaviour |
+|----------|-------|------------------|
+| **Read-only** (6) | `search-emails`, `read-email`, `list-events`, `search-people`, `access-shared-mailbox`, `find-meeting-rooms` | Auto-approved by Claude Code |
+| **Destructive** (2) | `send-email`, `manage-event` | Claude prompts for confirmation |
+| **Idempotent** (2) | `update-email`, `mailbox-settings` | Safe to retry |
+| **Moderate write** (9) | All others | Normal approval flow |
+
+## send-email Safety Controls
+
+| Control | Config | Default |
+|---------|--------|---------|
+| Dry-run preview | `dryRun: true` param | Disabled |
+| Session rate limit | `OUTLOOK_MAX_EMAILS_PER_SESSION` env | Unlimited (0) |
+| Recipient allowlist | `OUTLOOK_ALLOWED_RECIPIENTS` env | Allow all |
 
 ## Output Verbosity
 
@@ -131,21 +134,27 @@ Quick reference for all 55 MCP tools across 9 modules.
 
 ## Common Patterns
 
-```javascript
+```
 // List recent emails
-list-emails(folder: "inbox", count: 10)
+search-emails(folder: "inbox", count: 10)
 
 // Search with filters
 search-emails(from: "boss@company.com", receivedAfter: "2024-01-01")
 
-// Get email headers for forensics
-get-email-headers(id: "...", importantOnly: true)
+// Preview email before sending
+send-email(to: "...", subject: "...", body: "...", dryRun: true)
+
+// Get forensic headers
+read-email(id: "...", headersMode: true, importantOnly: true)
 
 // Export conversation to markdown
-export-conversation(conversationId: "...", format: "markdown", outputDir: "/tmp")
+export(target: "conversation", conversationId: "...", format: "markdown", outputDir: "/tmp")
 
 // Set out-of-office
-set-automatic-replies(enabled: true, internalReplyMessage: "I'm away...")
+mailbox-settings(action: "set-auto-replies", enabled: true, internalReplyMessage: "I'm away...")
+
+// Flag email for follow-up
+update-email(action: "flag", id: "...", dueDateTime: "2026-03-01T09:00:00Z")
 
 // Access shared mailbox
 access-shared-mailbox(sharedMailbox: "team@company.com", folder: "inbox")
