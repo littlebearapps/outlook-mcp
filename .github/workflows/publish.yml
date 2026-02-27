@@ -1,17 +1,19 @@
-# Publish to npm using OIDC Trusted Publishing
+# Publish to npm
 #
 # Publishes the package to npm when a version tag is pushed.
-# Uses GitHub Actions OIDC for authentication - no NPM_TOKEN needed.
+# Uses NPM_TOKEN (GitHub Actions secret) for authentication.
 #
 # Prerequisites:
-# 1. Configure trusted publisher on npmjs.com package settings
-# 2. Set: org=littlebearapps, repo=outlook-mcp, workflow=publish.yml
+# 1. Set NPM_TOKEN as a GitHub Actions secret (granular access token from npmjs.com)
 #
 # Usage:
 #   npm version patch  # or minor/major
 #   git push origin main --tags
 #
-# Security: Uses OIDC tokens (short-lived, scoped) instead of long-lived secrets.
+# Future: migrate to OIDC trusted publishing when npmjs.com trusted publisher
+# is configured (org=littlebearapps, repo=outlook-mcp, workflow=publish.yml)
+# and Node 24+ (npm 11.5.1+) is used. See OIDC migration notes below.
+#
 # Note: This workflow uses no untrusted input in run commands.
 
 name: Publish to npm
@@ -22,7 +24,7 @@ on:
       - 'v*'
 
 permissions:
-  id-token: write # Required for OIDC trusted publishing
+  id-token: write # Required for provenance attestation
   contents: read
 
 jobs:
@@ -54,9 +56,9 @@ jobs:
         run: npm test
 
       - name: Publish to npm
-        # No NODE_AUTH_TOKEN needed - uses OIDC trusted publishing
-        # Provenance is automatically generated with trusted publishing
-        run: npm publish --access public
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify publication
         run: |
