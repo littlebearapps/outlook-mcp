@@ -50,7 +50,7 @@ body:
     attributes:
       label: outlook-mcp version
       description: Run `outlook-mcp --version` or check package.json
-      placeholder: '2.0.0'
+      placeholder: '2.1.0'
     validations:
       required: true
 
