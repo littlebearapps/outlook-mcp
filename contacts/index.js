@@ -164,7 +164,7 @@ async function handleListContacts(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -235,7 +235,7 @@ async function handleSearchContacts(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -286,7 +286,7 @@ async function handleGetContact(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -359,7 +359,7 @@ async function handleCreateContact(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -427,7 +427,7 @@ async function handleUpdateContact(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -471,7 +471,7 @@ async function handleDeleteContact(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -564,7 +564,7 @@ async function handleSearchPeople(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -577,164 +577,109 @@ async function handleSearchPeople(args) {
   }
 }
 
-// Tool definitions
+// Consolidated tool definitions (7 → 2)
 const contactsTools = [
   {
-    name: 'list-contacts',
-    description: 'List personal contacts from Outlook',
+    name: 'manage-contact',
+    description:
+      'Manage personal contacts. action=list (default) lists contacts. action=search searches by name/email. action=get retrieves full details. action=create adds a contact. action=update modifies a contact. action=delete removes a contact.',
+    annotations: {
+      title: 'Contacts',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'search', 'get', 'create', 'update', 'delete'],
+          description: 'Action to perform (default: list)',
+        },
+        // list params
         count: {
           type: 'number',
-          description: 'Number of contacts to retrieve (default: 50, max: 100)',
+          description:
+            'Number of results (action=list default: 50, action=search default: 25)',
         },
         folder: {
           type: 'string',
-          description: 'Contact folder ID (default: main contacts folder)',
+          description: 'Contact folder ID (action=list)',
         },
         outputVerbosity: {
           type: 'string',
           enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
+          description:
+            'Output detail level (action=list/search, default: standard)',
         },
-      },
-      required: [],
-    },
-    handler: handleListContacts,
-  },
-  {
-    name: 'search-contacts',
-    description: 'Search personal contacts by name or email',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // search params
         query: {
           type: 'string',
-          description: 'Search query (name or email)',
+          description:
+            'Search query for name or email (action=search, required)',
         },
-        count: {
-          type: 'number',
-          description: 'Maximum results to return (default: 25, max: 50)',
-        },
-        outputVerbosity: {
-          type: 'string',
-          enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
-        },
-      },
-      required: ['query'],
-    },
-    handler: handleSearchContacts,
-  },
-  {
-    name: 'get-contact',
-    description: 'Get full details of a specific contact',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // get/update/delete params
         id: {
           type: 'string',
-          description: 'Contact ID',
+          description: 'Contact ID (action=get/update/delete, required)',
         },
-      },
-      required: ['id'],
-    },
-    handler: handleGetContact,
-  },
-  {
-    name: 'create-contact',
-    description: 'Create a new personal contact',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // create/update params
         displayName: {
           type: 'string',
-          description: 'Full name of the contact',
+          description: 'Full name (action=create/update)',
         },
         email: {
           type: 'string',
-          description: 'Primary email address',
+          description: 'Primary email address (action=create/update)',
         },
         mobilePhone: {
           type: 'string',
-          description: 'Mobile phone number',
+          description: 'Mobile phone number (action=create/update)',
         },
         companyName: {
           type: 'string',
-          description: 'Company or organization name',
+          description: 'Company name (action=create/update)',
         },
         jobTitle: {
           type: 'string',
-          description: 'Job title',
+          description: 'Job title (action=create/update)',
         },
         notes: {
           type: 'string',
-          description: 'Personal notes about the contact',
+          description: 'Personal notes (action=create/update)',
         },
       },
       required: [],
     },
-    handler: handleCreateContact,
-  },
-  {
-    name: 'update-contact',
-    description: 'Update an existing contact',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'string',
-          description: 'Contact ID to update',
-        },
-        displayName: {
-          type: 'string',
-          description: 'Updated full name',
-        },
-        email: {
-          type: 'string',
-          description: 'Updated primary email',
-        },
-        mobilePhone: {
-          type: 'string',
-          description: 'Updated mobile phone',
-        },
-        companyName: {
-          type: 'string',
-          description: 'Updated company name',
-        },
-        jobTitle: {
-          type: 'string',
-          description: 'Updated job title',
-        },
-        notes: {
-          type: 'string',
-          description: 'Updated notes',
-        },
-      },
-      required: ['id'],
+    handler: async (args) => {
+      const action = args.action || 'list';
+      switch (action) {
+        case 'search':
+          return handleSearchContacts(args);
+        case 'get':
+          return handleGetContact(args);
+        case 'create':
+          return handleCreateContact(args);
+        case 'update':
+          return handleUpdateContact(args);
+        case 'delete':
+          return handleDeleteContact(args);
+        case 'list':
+        default:
+          return handleListContacts(args);
+      }
     },
-    handler: handleUpdateContact,
-  },
-  {
-    name: 'delete-contact',
-    description: 'Delete a contact',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'string',
-          description: 'Contact ID to delete',
-        },
-      },
-      required: ['id'],
-    },
-    handler: handleDeleteContact,
   },
   {
     name: 'search-people',
     description:
-      'Search for people by relevance (includes contacts, directory, and recent communications)',
+      'Search for people by relevance (includes contacts, directory, and recent communications). Uses a different API from manage-contact search.',
+    annotations: {
+      title: 'People Search',
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {

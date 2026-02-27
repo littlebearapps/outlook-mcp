@@ -1,17 +1,16 @@
 /**
  * Advanced module for Outlook MCP server
  *
- * Provides advanced features:
+ * Provides:
  * - Shared mailbox access
- * - Message flags (follow-up)
  * - Meeting room search
+ *
+ * Note: Message flag handlers are still exported from here but their tool
+ * definitions have moved to the email module's `update-email` tool.
  */
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 const { EMAIL_FIELDS } = require('../utils/field-presets');
-
-// Flag status values (used for validation in flag tools)
-const _FLAG_STATUS = ['notFlagged', 'complete', 'flagged'];
 
 /**
  * Format an email for display (simplified)
@@ -111,7 +110,7 @@ async function handleAccessSharedMailbox(args) {
           msg.from?.emailAddress?.name ||
           msg.from?.emailAddress?.address ||
           'Unknown';
-        const read = msg.isRead ? '✓' : '○';
+        const read = msg.isRead ? 'Y' : 'N';
         output.push(
           `| ${i + 1} | ${msg.subject?.substring(0, 40)}${msg.subject?.length > 40 ? '...' : ''} | ${from.substring(0, 20)} | ${date} | ${read} |`
         );
@@ -145,7 +144,7 @@ async function handleAccessSharedMailbox(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -253,7 +252,7 @@ async function handleSetMessageFlag(args) {
     let output = [];
 
     if (results.length > 0) {
-      output.push(`✅ Flagged ${results.length} message(s) for follow-up`);
+      output.push(`Flagged ${results.length} message(s) for follow-up`);
 
       if (dueDateTime) {
         output.push(`**Due**: ${new Date(dueDateTime).toLocaleString()}`);
@@ -264,7 +263,7 @@ async function handleSetMessageFlag(args) {
     }
 
     if (errors.length > 0) {
-      output.push(`\n⚠️ ${errors.length} error(s):`);
+      output.push(`\n${errors.length} error(s):`);
       errors.forEach((e) => {
         output.push(`- ${e.id.substring(0, 20)}...: ${e.error}`);
       });
@@ -290,7 +289,7 @@ async function handleSetMessageFlag(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -361,11 +360,11 @@ async function handleClearMessageFlag(args) {
     let output = [];
 
     if (results.length > 0) {
-      output.push(`✅ ${results.length} message(s) ${action}`);
+      output.push(`${results.length} message(s) ${action}`);
     }
 
     if (errors.length > 0) {
-      output.push(`\n⚠️ ${errors.length} error(s):`);
+      output.push(`\n${errors.length} error(s):`);
       errors.forEach((e) => {
         output.push(`- ${e.id.substring(0, 20)}...: ${e.error}`);
       });
@@ -392,7 +391,7 @@ async function handleClearMessageFlag(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -551,7 +550,7 @@ async function handleFindMeetingRooms(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -567,11 +566,16 @@ async function handleFindMeetingRooms(args) {
   }
 }
 
-// Tool definitions
+// Consolidated tool definitions (4 → 2, flag tools moved to email/update-email)
 const advancedTools = [
   {
     name: 'access-shared-mailbox',
     description: 'Read emails from a shared mailbox you have access to',
+    annotations: {
+      title: 'Shared Mailbox',
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -598,60 +602,13 @@ const advancedTools = [
     handler: handleAccessSharedMailbox,
   },
   {
-    name: 'set-message-flag',
-    description: 'Flag email(s) for follow-up with optional due date',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        messageId: {
-          type: 'string',
-          description: 'Single message ID to flag',
-        },
-        messageIds: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of message IDs to flag (batch operation)',
-        },
-        dueDateTime: {
-          type: 'string',
-          description: 'Due date/time for follow-up (ISO 8601 format)',
-        },
-        startDateTime: {
-          type: 'string',
-          description: 'Start date/time for follow-up (ISO 8601 format)',
-        },
-      },
-      required: [],
-    },
-    handler: handleSetMessageFlag,
-  },
-  {
-    name: 'clear-message-flag',
-    description: 'Clear follow-up flag from email(s) or mark as complete',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        messageId: {
-          type: 'string',
-          description: 'Single message ID',
-        },
-        messageIds: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of message IDs (batch operation)',
-        },
-        markComplete: {
-          type: 'boolean',
-          description: 'Mark as complete instead of clearing (default: false)',
-        },
-      },
-      required: [],
-    },
-    handler: handleClearMessageFlag,
-  },
-  {
     name: 'find-meeting-rooms',
-    description: 'Search for meeting rooms in your organization',
+    description: 'Search for meeting rooms in your organisation',
+    annotations: {
+      title: 'Meeting Rooms',
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {

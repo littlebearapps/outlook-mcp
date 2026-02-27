@@ -11,7 +11,7 @@ New to Outlook MCP? Start here:
 
 | Document | Description |
 |----------|-------------|
-| [Tools Reference](quickrefs/tools-reference.md) | All 55 tools with parameters |
+| [Tools Reference](quickrefs/tools-reference.md) | All 20 tools with parameters |
 | [CLAUDE.md](../CLAUDE.md) | Quick reference for development |
 
 ## Contributing

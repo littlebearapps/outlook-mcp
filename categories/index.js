@@ -99,7 +99,7 @@ async function handleListCategories(args) {
         content: [
           {
             type: 'text',
-            text: 'No categories found. Use `create-category` to create your first category.',
+            text: 'No categories found. Use manage-category with action=create to create your first category.',
           },
         ],
       };
@@ -140,7 +140,7 @@ async function handleListCategories(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -210,7 +210,7 @@ async function handleCreateCategory(args) {
       content: [
         {
           type: 'text',
-          text: `✅ Category created successfully!\n\n**Name**: ${response.displayName}\n**Color**: ${colorName} (${response.color})\n**ID**: ${response.id}`,
+          text: `Category created!\n\n**Name**: ${response.displayName}\n**Color**: ${colorName} (${response.color})\n**ID**: ${response.id}`,
         },
       ],
       _meta: {
@@ -223,7 +223,7 @@ async function handleCreateCategory(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -262,7 +262,7 @@ async function handleUpdateCategory(args) {
       content: [
         {
           type: 'text',
-          text: 'Category ID is required. Use `list-categories` to find category IDs.',
+          text: 'Category ID is required. Use manage-category with action=list to find category IDs.',
         },
       ],
     };
@@ -311,7 +311,7 @@ async function handleUpdateCategory(args) {
       content: [
         {
           type: 'text',
-          text: `✅ Category updated successfully!\n\n**Name**: ${response.displayName}\n**Color**: ${colorName} (${response.color})\n**ID**: ${response.id}`,
+          text: `Category updated!\n\n**Name**: ${response.displayName}\n**Color**: ${colorName} (${response.color})\n**ID**: ${response.id}`,
         },
       ],
       _meta: {
@@ -324,7 +324,7 @@ async function handleUpdateCategory(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -351,7 +351,7 @@ async function handleDeleteCategory(args) {
       content: [
         {
           type: 'text',
-          text: 'Category ID is required. Use `list-categories` to find category IDs.',
+          text: 'Category ID is required. Use manage-category with action=list to find category IDs.',
         },
       ],
     };
@@ -370,7 +370,7 @@ async function handleDeleteCategory(args) {
       content: [
         {
           type: 'text',
-          text: `✅ Category deleted successfully.`,
+          text: `Category deleted successfully.`,
         },
       ],
     };
@@ -380,7 +380,7 @@ async function handleDeleteCategory(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -391,7 +391,7 @@ async function handleDeleteCategory(args) {
         content: [
           {
             type: 'text',
-            text: `Category not found. Use \`list-categories\` to see available categories.`,
+            text: `Category not found. Use manage-category with action=list to see available categories.`,
           },
         ],
       };
@@ -484,7 +484,7 @@ async function handleApplyCategory(args) {
 
     if (results.length > 0) {
       output.push(
-        `✅ Categories ${applyAction === 'remove' ? 'removed from' : 'applied to'} ${results.length} message(s)\n`
+        `Categories ${applyAction === 'remove' ? 'removed from' : 'applied to'} ${results.length} message(s)\n`
       );
 
       if (ids.length <= 5) {
@@ -497,7 +497,7 @@ async function handleApplyCategory(args) {
     }
 
     if (errors.length > 0) {
-      output.push(`\n⚠️ ${errors.length} error(s):`);
+      output.push(`\n${errors.length} error(s):`);
       errors.forEach((e) => {
         output.push(`- ${e.id.substring(0, 20)}...: ${e.error}`);
       });
@@ -524,7 +524,7 @@ async function handleApplyCategory(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -562,7 +562,7 @@ async function handleGetFocusedInboxOverrides(args) {
         content: [
           {
             type: 'text',
-            text: 'No Focused Inbox overrides configured.\n\nUse `set-focused-inbox-override` to always show emails from specific senders in Focused or Other.',
+            text: 'No Focused Inbox overrides configured.\n\nUse manage-focused-inbox with action=set to always show emails from specific senders in Focused or Other.',
           },
         ],
       };
@@ -626,7 +626,7 @@ async function handleGetFocusedInboxOverrides(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -646,7 +646,9 @@ async function handleGetFocusedInboxOverrides(args) {
  * Set Focused Inbox override handler
  */
 async function handleSetFocusedInboxOverride(args) {
-  const { emailAddress, name, classifyAs, action } = args;
+  const { emailAddress, name, classifyAs } = args;
+  // Note: args.action is used by the consolidated dispatcher and also checked here for 'delete'
+  const overrideAction = args.action;
 
   if (!emailAddress) {
     return {
@@ -688,7 +690,7 @@ async function handleSetFocusedInboxOverride(args) {
     );
 
     // Handle delete action
-    if (action === 'delete') {
+    if (overrideAction === 'delete') {
       if (!existing) {
         return {
           content: [
@@ -710,7 +712,7 @@ async function handleSetFocusedInboxOverride(args) {
         content: [
           {
             type: 'text',
-            text: `✅ Removed override for ${emailAddress}. Emails will now follow normal Focused Inbox rules.`,
+            text: `Removed override for ${emailAddress}. Emails will now follow normal Focused Inbox rules.`,
           },
         ],
       };
@@ -752,7 +754,7 @@ async function handleSetFocusedInboxOverride(args) {
       content: [
         {
           type: 'text',
-          text: `✅ ${actionWord} override!\n\nEmails from **${response.senderEmailAddress.name || emailAddress}** <${emailAddress}> will always go to **${destination}**.`,
+          text: `${actionWord} override!\n\nEmails from **${response.senderEmailAddress.name || emailAddress}** <${emailAddress}> will always go to **${destination}**.`,
         },
       ],
       _meta: {
@@ -766,7 +768,7 @@ async function handleSetFocusedInboxOverride(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -782,98 +784,87 @@ async function handleSetFocusedInboxOverride(args) {
   }
 }
 
-// Tool definitions
+// Consolidated tool definitions (7 → 3)
 const categoriesTools = [
   {
-    name: 'list-categories',
-    description: 'List master categories in your Outlook account',
+    name: 'manage-category',
+    description:
+      'Manage master categories. action=list (default) lists categories. action=create creates a category. action=update changes name/color. action=delete removes a category.',
+    annotations: {
+      title: 'Master Categories',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'create', 'update', 'delete'],
+          description: 'Action to perform (default: list)',
+        },
+        // list params
         outputVerbosity: {
           type: 'string',
           enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
+          description: 'Output detail level (action=list, default: standard)',
         },
-      },
-      required: [],
-    },
-    handler: handleListCategories,
-  },
-  {
-    name: 'create-category',
-    description: 'Create a new master category',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // create/update params
         displayName: {
           type: 'string',
-          description: 'Category name (required)',
+          description:
+            'Category name (action=create required, action=update optional)',
         },
         color: {
           type: 'string',
           enum: CATEGORY_COLORS,
           description:
-            'Category color preset (preset0=Red, preset1=Orange, preset7=Blue, etc.)',
+            'Color preset, e.g. preset0=Red, preset7=Blue (action=create/update)',
         },
-      },
-      required: ['displayName'],
-    },
-    handler: handleCreateCategory,
-  },
-  {
-    name: 'update-category',
-    description: "Update an existing category's name or color",
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // update/delete params
         id: {
           type: 'string',
-          description: 'Category ID (required, use list-categories to find)',
-        },
-        displayName: {
-          type: 'string',
-          description: 'New category name',
-        },
-        color: {
-          type: 'string',
-          enum: CATEGORY_COLORS,
-          description: 'New category color preset',
+          description: 'Category ID (action=update/delete, required)',
         },
       },
-      required: ['id'],
+      required: [],
     },
-    handler: handleUpdateCategory,
-  },
-  {
-    name: 'delete-category',
-    description: 'Delete a master category',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'string',
-          description: 'Category ID (required, use list-categories to find)',
-        },
-      },
-      required: ['id'],
+    handler: async (args) => {
+      const action = args.action || 'list';
+      switch (action) {
+        case 'create':
+          return handleCreateCategory(args);
+        case 'update':
+          return handleUpdateCategory(args);
+        case 'delete':
+          return handleDeleteCategory(args);
+        case 'list':
+        default:
+          return handleListCategories(args);
+      }
     },
-    handler: handleDeleteCategory,
   },
   {
     name: 'apply-category',
-    description: 'Apply or remove categories on email message(s)',
+    description: 'Apply, add, or remove categories on email message(s)',
+    annotations: {
+      title: 'Apply Categories',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
         messageId: {
           type: 'string',
-          description: 'Single message ID to categorize',
+          description: 'Single message ID to categorise',
         },
         messageIds: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Array of message IDs to categorize (batch operation)',
+          description: 'Array of message IDs to categorise (batch operation)',
         },
         categories: {
           type: 'array',
@@ -884,7 +875,7 @@ const categoriesTools = [
           type: 'string',
           enum: ['set', 'add', 'remove'],
           description:
-            'Action: set (replace all), add (append), remove (remove specific). Default: set',
+            'set (replace all), add (append), remove (remove specific). Default: set',
         },
       },
       required: ['categories'],
@@ -892,53 +883,59 @@ const categoriesTools = [
     handler: handleApplyCategory,
   },
   {
-    name: 'get-focused-inbox-overrides',
+    name: 'manage-focused-inbox',
     description:
-      'List Focused Inbox overrides (senders always in Focused or Other)',
+      'Manage Focused Inbox overrides. action=list (default) shows overrides. action=set creates/updates an override. action=delete removes an override.',
+    annotations: {
+      title: 'Focused Inbox',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'set', 'delete'],
+          description: 'Action to perform (default: list)',
+        },
+        // list params
         outputVerbosity: {
           type: 'string',
           enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
+          description: 'Output detail level (action=list, default: standard)',
         },
-      },
-      required: [],
-    },
-    handler: handleGetFocusedInboxOverrides,
-  },
-  {
-    name: 'set-focused-inbox-override',
-    description:
-      'Create, update, or delete a Focused Inbox override for a sender',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // set/delete params
         emailAddress: {
           type: 'string',
-          description: 'Sender email address (required)',
+          description: 'Sender email address (action=set/delete, required)',
         },
         name: {
           type: 'string',
-          description: 'Sender display name (optional)',
+          description: 'Sender display name (action=set)',
         },
         classifyAs: {
           type: 'string',
           enum: ['focused', 'other'],
           description:
-            'Where to always put emails from this sender (default: focused)',
-        },
-        action: {
-          type: 'string',
-          enum: ['create', 'delete'],
-          description:
-            "Use 'delete' to remove an override (default: create/update)",
+            'Where to put emails from this sender (action=set, default: focused)',
         },
       },
-      required: ['emailAddress'],
+      required: [],
     },
-    handler: handleSetFocusedInboxOverride,
+    handler: async (args) => {
+      const action = args.action || 'list';
+      switch (action) {
+        case 'set':
+          return handleSetFocusedInboxOverride(args);
+        case 'delete':
+          return handleSetFocusedInboxOverride(args);
+        case 'list':
+        default:
+          return handleGetFocusedInboxOverrides(args);
+      }
+    },
   },
 ];
 

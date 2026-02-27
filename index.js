@@ -87,6 +87,7 @@ server.fallbackRequestHandler = async (request) => {
           name: tool.name,
           description: tool.description,
           inputSchema: tool.inputSchema,
+          ...(tool.annotations && { annotations: tool.annotations }),
         })),
       };
     }

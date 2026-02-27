@@ -7,11 +7,16 @@ const handleCreateEvent = require('./create');
 const handleCancelEvent = require('./cancel');
 const handleDeleteEvent = require('./delete');
 
-// Calendar tool definitions
+// Calendar tool definitions (consolidated: 5 → 3)
 const calendarTools = [
   {
     name: 'list-events',
     description: 'Lists upcoming events from your calendar',
+    annotations: {
+      title: 'List Calendar Events',
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -25,27 +30,14 @@ const calendarTools = [
     handler: handleListEvents,
   },
   {
-    name: 'decline-event',
-    description: 'Declines a calendar event',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        eventId: {
-          type: 'string',
-          description: 'The ID of the event to decline',
-        },
-        comment: {
-          type: 'string',
-          description: 'Optional comment for declining the event',
-        },
-      },
-      required: ['eventId'],
-    },
-    handler: handleDeclineEvent,
-  },
-  {
     name: 'create-event',
     description: 'Creates a new calendar event',
+    annotations: {
+      title: 'Create Calendar Event',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -78,38 +70,53 @@ const calendarTools = [
     handler: handleCreateEvent,
   },
   {
-    name: 'cancel-event',
-    description: 'Cancels a calendar event',
+    name: 'manage-event',
+    description:
+      'Manage an existing calendar event. action=decline declines an invitation. action=cancel cancels an event you organised. action=delete permanently removes an event.',
+    annotations: {
+      title: 'Manage Calendar Event',
+      readOnlyHint: false,
+      destructiveHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['decline', 'cancel', 'delete'],
+          description: 'Action to perform (required)',
+        },
         eventId: {
           type: 'string',
-          description: 'The ID of the event to cancel',
+          description: 'The ID of the event',
         },
         comment: {
           type: 'string',
-          description: 'Optional comment for cancelling the event',
+          description: 'Optional comment for declining or cancelling the event',
         },
       },
-      required: ['eventId'],
+      required: ['action', 'eventId'],
     },
-    handler: handleCancelEvent,
-  },
-  {
-    name: 'delete-event',
-    description: 'Deletes a calendar event',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        eventId: {
-          type: 'string',
-          description: 'The ID of the event to delete',
-        },
-      },
-      required: ['eventId'],
+    handler: async (args) => {
+      switch (args.action) {
+        case 'decline':
+          return handleDeclineEvent(args);
+        case 'cancel':
+          return handleCancelEvent(args);
+        case 'delete':
+          return handleDeleteEvent(args);
+        default:
+          return {
+            content: [
+              {
+                type: 'text',
+                text: "Invalid action. Use 'decline', 'cancel', or 'delete'.",
+              },
+            ],
+          };
+      }
     },
-    handler: handleDeleteEvent,
   },
 ];
 

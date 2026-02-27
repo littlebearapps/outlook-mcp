@@ -183,7 +183,7 @@ async function handleGetMailboxSettings(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -193,56 +193,6 @@ async function handleGetMailboxSettings(args) {
         {
           type: 'text',
           text: `Error getting mailbox settings: ${error.message}`,
-        },
-      ],
-    };
-  }
-}
-
-/**
- * Get automatic replies (out of office) handler
- */
-async function handleGetAutomaticReplies(_args) {
-  try {
-    const accessToken = await ensureAuthenticated();
-
-    const settings = await callGraphAPI(
-      accessToken,
-      '/me/mailboxSettings/automaticRepliesSetting',
-      'GET'
-    );
-
-    let output = [];
-    output.push('# Automatic Replies (Out of Office)\n');
-    output.push(formatAutomaticReplies(settings));
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: output.join('\n'),
-        },
-      ],
-      _meta: {
-        settings,
-      },
-    };
-  } catch (error) {
-    if (error.message === 'Authentication required') {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
-          },
-        ],
-      };
-    }
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error getting automatic replies: ${error.message}`,
         },
       ],
     };
@@ -322,7 +272,7 @@ async function handleSetAutomaticReplies(args) {
     );
 
     let output = [];
-    output.push('✅ Automatic replies updated!\n');
+    output.push('Automatic replies updated!\n');
     output.push(formatAutomaticReplies(updated));
 
     return {
@@ -342,7 +292,7 @@ async function handleSetAutomaticReplies(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -352,56 +302,6 @@ async function handleSetAutomaticReplies(args) {
         {
           type: 'text',
           text: `Error setting automatic replies: ${error.message}`,
-        },
-      ],
-    };
-  }
-}
-
-/**
- * Get working hours handler
- */
-async function handleGetWorkingHours(_args) {
-  try {
-    const accessToken = await ensureAuthenticated();
-
-    const settings = await callGraphAPI(
-      accessToken,
-      '/me/mailboxSettings/workingHours',
-      'GET'
-    );
-
-    let output = [];
-    output.push('# Working Hours\n');
-    output.push(formatWorkingHours(settings));
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: output.join('\n'),
-        },
-      ],
-      _meta: {
-        settings,
-      },
-    };
-  } catch (error) {
-    if (error.message === 'Authentication required') {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
-          },
-        ],
-      };
-    }
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error getting working hours: ${error.message}`,
         },
       ],
     };
@@ -507,7 +407,7 @@ async function handleSetWorkingHours(args) {
     );
 
     let output = [];
-    output.push('✅ Working hours updated!\n');
+    output.push('Working hours updated!\n');
     output.push(formatWorkingHours(updated));
 
     return {
@@ -527,7 +427,7 @@ async function handleSetWorkingHours(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -543,15 +443,111 @@ async function handleSetWorkingHours(args) {
   }
 }
 
-// Tool definitions
+/**
+ * Get automatic replies settings handler (standalone)
+ */
+async function handleGetAutomaticReplies() {
+  try {
+    const accessToken = await ensureAuthenticated();
+    const settings = await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings/automaticRepliesSetting',
+      'GET'
+    );
+
+    let output = [];
+    output.push('# Automatic Replies\n');
+    output.push(formatAutomaticReplies(settings));
+
+    return {
+      content: [{ type: 'text', text: output.join('\n') }],
+      _meta: { settings },
+    };
+  } catch (error) {
+    if (error.message === 'Authentication required') {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
+          },
+        ],
+      };
+    }
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error getting automatic replies: ${error.message}`,
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Get working hours settings handler (standalone)
+ */
+async function handleGetWorkingHours() {
+  try {
+    const accessToken = await ensureAuthenticated();
+    const settings = await callGraphAPI(
+      accessToken,
+      '/me/mailboxSettings/workingHours',
+      'GET'
+    );
+
+    let output = [];
+    output.push('# Working Hours\n');
+    output.push(formatWorkingHours(settings));
+
+    return {
+      content: [{ type: 'text', text: output.join('\n') }],
+      _meta: { settings },
+    };
+  } catch (error) {
+    if (error.message === 'Authentication required') {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
+          },
+        ],
+      };
+    }
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error getting working hours: ${error.message}`,
+        },
+      ],
+    };
+  }
+}
+
+// Consolidated tool definition
 const settingsTools = [
   {
-    name: 'get-mailbox-settings',
+    name: 'mailbox-settings',
     description:
-      'Get mailbox settings (language, timezone, date format, working hours, auto-replies)',
+      'Manage mailbox settings. action=get (default) retrieves settings (language, timezone, working hours, auto-replies). action=set-auto-replies configures out-of-office. action=set-working-hours configures work schedule.',
+    annotations: {
+      title: 'Mailbox Settings',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['get', 'set-auto-replies', 'set-working-hours'],
+          description: 'Action to perform (default: get)',
+        },
+        // get params
         section: {
           type: 'string',
           enum: [
@@ -561,83 +557,50 @@ const settingsTools = [
             'workingHours',
             'automaticRepliesSetting',
           ],
-          description: 'Specific section to retrieve (default: all)',
+          description:
+            'Specific section to retrieve (action=get, default: all)',
         },
-      },
-      required: [],
-    },
-    handler: handleGetMailboxSettings,
-  },
-  {
-    name: 'get-automatic-replies',
-    description: 'Get automatic replies (out of office) configuration',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-    handler: handleGetAutomaticReplies,
-  },
-  {
-    name: 'set-automatic-replies',
-    description: 'Configure automatic replies (out of office) messages',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // set-auto-replies params
         enabled: {
           type: 'boolean',
-          description: 'Enable (true) or disable (false) automatic replies',
+          description:
+            'Enable (true) or disable (false) automatic replies (action=set-auto-replies)',
         },
         startDateTime: {
           type: 'string',
-          description: 'Start date/time for scheduled mode (ISO 8601 format)',
+          description:
+            'Start date/time for scheduled mode, ISO 8601 format (action=set-auto-replies)',
         },
         endDateTime: {
           type: 'string',
-          description: 'End date/time for scheduled mode (ISO 8601 format)',
+          description:
+            'End date/time for scheduled mode, ISO 8601 format (action=set-auto-replies)',
         },
         internalReplyMessage: {
           type: 'string',
-          description: 'Reply message for internal senders (same organization)',
+          description:
+            'Reply message for internal senders (action=set-auto-replies)',
         },
         externalReplyMessage: {
           type: 'string',
-          description: 'Reply message for external senders',
+          description:
+            'Reply message for external senders (action=set-auto-replies)',
         },
         externalAudience: {
           type: 'string',
           enum: ['none', 'contactsOnly', 'all'],
-          description:
-            'Who receives external reply: none, contactsOnly, or all',
+          description: 'Who receives external reply (action=set-auto-replies)',
         },
-      },
-      required: [],
-    },
-    handler: handleSetAutomaticReplies,
-  },
-  {
-    name: 'get-working-hours',
-    description: 'Get your configured working hours',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-    handler: handleGetWorkingHours,
-  },
-  {
-    name: 'set-working-hours',
-    description: 'Configure your working hours for scheduling',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // set-working-hours params
         startTime: {
           type: 'string',
-          description: "Work start time in HH:MM format (e.g., '09:00')",
+          description:
+            "Work start time in HH:MM format, e.g. '09:00' (action=set-working-hours)",
         },
         endTime: {
           type: 'string',
-          description: "Work end time in HH:MM format (e.g., '17:00')",
+          description:
+            "Work end time in HH:MM format, e.g. '17:00' (action=set-working-hours)",
         },
         daysOfWeek: {
           type: 'array',
@@ -646,17 +609,28 @@ const settingsTools = [
             enum: DAYS_OF_WEEK,
           },
           description:
-            "Work days (e.g., ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])",
+            "Work days, e.g. ['monday','tuesday','wednesday','thursday','friday'] (action=set-working-hours)",
         },
         timeZone: {
           type: 'string',
           description:
-            "Time zone name (e.g., 'Pacific Standard Time', 'Australia/Sydney')",
+            "Time zone name, e.g. 'Australia/Melbourne' (action=set-working-hours)",
         },
       },
       required: [],
     },
-    handler: handleSetWorkingHours,
+    handler: async (args) => {
+      const action = args.action || 'get';
+      switch (action) {
+        case 'set-auto-replies':
+          return handleSetAutomaticReplies(args);
+        case 'set-working-hours':
+          return handleSetWorkingHours(args);
+        case 'get':
+        default:
+          return handleGetMailboxSettings(args);
+      }
+    },
   },
 ];
 

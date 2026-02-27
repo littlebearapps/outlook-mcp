@@ -1,22 +1,43 @@
-# Outlook MCP Server
+<p align="center">
+  <img src="docs/assets/outlook-mcp-logo-full.svg" height="200" alt="Outlook MCP" />
+</p>
 
-Give Claude full access to your Outlook email, calendar, and contacts.
+<p align="center">
+  <strong>Give Claude full access to your Outlook email, calendar, and contacts.</strong>
+</p>
 
-[![npm version](https://img.shields.io/npm/v/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/@littlebearapps/outlook-mcp)](https://www.npmjs.com/package/@littlebearapps/outlook-mcp)
-[![CI](https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/littlebearapps/outlook-mcp/graph/badge.svg)](https://codecov.io/gh/littlebearapps/outlook-mcp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@littlebearapps/outlook-mcp"><img src="https://img.shields.io/npm/v/@littlebearapps/outlook-mcp" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@littlebearapps/outlook-mcp"><img src="https://img.shields.io/npm/dm/@littlebearapps/outlook-mcp" alt="npm downloads" /></a>
+  <a href="https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml"><img src="https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://codecov.io/gh/littlebearapps/outlook-mcp"><img src="https://codecov.io/gh/littlebearapps/outlook-mcp/graph/badge.svg" alt="codecov" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen" alt="Node.js" /></a>
+</p>
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that connects Claude and other AI assistants with Microsoft Outlook through the Microsoft Graph API. 55 tools across 9 modules for managing email, calendar, contacts, folders, rules, categories, settings, and more.
+A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that connects Claude and other AI assistants with Microsoft Outlook through the Microsoft Graph API. 20 consolidated tools across 9 modules for managing email, calendar, contacts, folders, rules, categories, settings, and more.
+
+## Safety & Token Efficiency
+
+Outlook MCP is designed with safety-first principles for AI-driven email access:
+
+**Destructive action safeguards** — Every tool carries [MCP annotations](https://modelcontextprotocol.io/docs/concepts/tools#annotations) (`readOnlyHint`, `destructiveHint`, `idempotentHint`) so AI clients can auto-approve safe reads and prompt for confirmation on destructive operations like sending email or deleting events.
+
+**Send-email protections** — The `send-email` tool includes:
+- **Dry-run mode** (`dryRun: true`) — preview composed emails without sending
+- **Session rate limiting** — configurable via `OUTLOOK_MAX_EMAILS_PER_SESSION` (default: unlimited)
+- **Recipient allowlist** — restrict sending to approved addresses/domains via `OUTLOOK_ALLOWED_RECIPIENTS`
+
+**Token-optimised architecture** — Tools are consolidated using the STRAP (Single Tool, Resource, Action Pattern) approach. 20 tools instead of 55 reduces per-turn overhead by ~11,000 tokens (~64%), keeping more of the AI's context window available for your actual conversation. Fewer tools also means the AI selects the right tool more accurately — research shows tool selection degrades beyond ~40 tools.
+
+> **Important**: These safeguards are defence-in-depth measures that reduce risk, but they are not a guarantee against unintended actions. AI-driven access to your email is inherently sensitive — always review tool calls before approving, particularly for sends and deletes. No automated guardrail is foolproof, and you remain responsible for actions taken through your mailbox.
 
 ## Why Outlook MCP?
 
 | Without Outlook MCP | With Outlook MCP |
 |---------------------|------------------|
 | Switch between Claude and Outlook to manage email | Read, search, send, and export emails directly from Claude |
-| Manually search and export email threads | 17 email tools including search, threading, and bulk export |
+| Manually search and export email threads | Full email tools including search, threading, and bulk export |
 | Context-switch for calendar and contacts | Manage calendar events, contacts, and settings in one place |
 | Copy-paste email content into conversations | Claude reads your emails natively with full context |
 | No programmatic access to mailbox rules or categories | Create inbox rules, manage categories, configure auto-replies |
@@ -66,7 +87,7 @@ Add to your Claude Desktop config (`claude_desktop_config.json`):
 ### 4. Authenticate
 
 1. Start the auth server: `outlook-mcp-auth` (or `npx @littlebearapps/outlook-mcp-auth`)
-2. In Claude, use the `authenticate` tool to get an OAuth URL
+2. In Claude, use the `auth` tool with `action=authenticate` to get an OAuth URL
 3. Open the URL, sign in with your Microsoft account, and grant permissions
 4. Tokens are saved locally and refresh automatically
 
@@ -74,17 +95,17 @@ Add to your Claude Desktop config (`claude_desktop_config.json`):
 
 | Module | Tools | What You Can Do |
 |--------|------:|-----------------|
-| **Email** | 17 | List, search, read, send, mark read/unread, attachments, headers, MIME content, conversation threading, delta sync, bulk export |
-| **Calendar** | 5 | List upcoming events, create new events, decline, cancel, and delete |
-| **Contacts** | 7 | Full CRUD for personal contacts plus relevance-based people search |
-| **Categories** | 7 | Create and manage categories, apply to messages, configure Focused Inbox overrides |
-| **Settings** | 5 | Get/set automatic replies (out-of-office), working hours, and timezone |
-| **Folder** | 4 | List folders, create new folders, move emails between folders, folder statistics |
-| **Rules** | 3 | List, create, and reorder inbox rules |
-| **Advanced** | 4 | Shared mailbox access, message follow-up flags, meeting room search |
-| **Auth** | 3 | OAuth flow, authentication status, server info |
+| **Email** | 6 | `search-emails` (list/search/delta/conversations), `read-email` (content + forensic headers), `send-email` (with dry-run), `update-email` (read status, flags), `attachments`, `export` |
+| **Calendar** | 3 | `list-events`, `create-event`, `manage-event` (decline/cancel/delete) |
+| **Contacts** | 2 | `manage-contact` (list/search/get/create/update/delete), `search-people` |
+| **Categories** | 3 | `manage-category` (CRUD), `apply-category`, `manage-focused-inbox` |
+| **Settings** | 1 | `mailbox-settings` (get/set auto-replies/set working hours) |
+| **Folder** | 1 | `folders` (list/create/move/stats) |
+| **Rules** | 1 | `manage-rules` (list/create/reorder) |
+| **Advanced** | 2 | `access-shared-mailbox`, `find-meeting-rooms` |
+| **Auth** | 1 | `auth` (status/authenticate/about) |
 
-**55 tools total.** See the [Tools Reference](docs/quickrefs/tools-reference.md) for complete parameter details.
+**20 tools total** — consolidated from 55 for optimal AI performance. See the [Tools Reference](docs/quickrefs/tools-reference.md) for complete parameter details.
 
 ### Export Formats
 
@@ -225,7 +246,7 @@ This starts a local server on port 3333 to handle the OAuth callback.
 
 ### Step 2: Authenticate
 
-1. In Claude, use the `authenticate` tool
+1. In Claude, use the `auth` tool with `action=authenticate`
 2. Open the provided URL in your browser
 3. Sign in with your Microsoft account and grant permissions
 4. Tokens are saved to `~/.outlook-mcp-tokens.json` and refresh automatically
@@ -234,25 +255,26 @@ This starts a local server on port 3333 to handle the OAuth callback.
 
 ```
 outlook-mcp/
-├── index.js                 # Main entry point (55 tools)
+├── index.js                 # Main entry point (20 tools)
 ├── config.js                # Configuration settings
 ├── outlook-auth-server.js   # OAuth server (port 3333)
-├── auth/                    # Authentication module (3 tools)
-├── email/                   # Email module (17 tools)
+├── auth/                    # Authentication module (1 tool)
+├── email/                   # Email module (6 tools)
 │   ├── headers.js           # Email header retrieval
 │   ├── mime.js              # Raw MIME/EML content
 │   ├── conversations.js     # Thread listing/export
 │   ├── attachments.js       # Attachment operations
 │   └── ...
-├── calendar/                # Calendar module (5 tools)
-├── contacts/                # Contacts module (7 tools)
-├── categories/              # Categories module (7 tools)
-├── settings/                # Settings module (5 tools)
-├── folder/                  # Folder module (4 tools)
-├── rules/                   # Rules module (3 tools)
-├── advanced/                # Advanced module (4 tools)
+├── calendar/                # Calendar module (3 tools)
+├── contacts/                # Contacts module (2 tools)
+├── categories/              # Categories module (3 tools)
+├── settings/                # Settings module (1 tool)
+├── folder/                  # Folder module (1 tool)
+├── rules/                   # Rules module (1 tool)
+├── advanced/                # Advanced module (2 tools)
 └── utils/
     ├── graph-api.js         # Microsoft Graph API client
+    ├── safety.js            # Rate limiting, recipient allowlist, dry-run
     ├── odata-helpers.js     # OData query building
     ├── field-presets.js     # Token-efficient field selections
     ├── response-formatter.js # Verbosity levels
@@ -284,7 +306,7 @@ Start the auth server first: `npm run auth-server`
 
 ### Empty API responses
 
-Check authentication status with the `check-auth-status` tool. Tokens may have expired — re-authenticate if needed.
+Check authentication status with the `auth` tool (action=status). Tokens may have expired — re-authenticate if needed.
 
 ## Development
 
@@ -317,7 +339,7 @@ USE_TEST_MODE=true npm start
 | Guide | Description |
 |-------|-------------|
 | [Azure Setup Guide](docs/guides/azure-setup.md) | Azure account creation, app registration, permissions, and secrets |
-| [Tools Reference](docs/quickrefs/tools-reference.md) | All 55 tools with parameters |
+| [Tools Reference](docs/quickrefs/tools-reference.md) | All 20 tools with parameters |
 
 Full documentation: [docs/](docs/README.md)
 

@@ -1,5 +1,7 @@
 /**
  * Email module for Outlook MCP server
+ *
+ * Consolidated from 17 tools to 6 for token efficiency.
  */
 const handleListEmails = require('./list');
 const { handleSearchEmails, handleSearchByMessageId } = require('./search');
@@ -21,106 +23,165 @@ const {
   handleExportConversation,
 } = require('./conversations');
 
-// Email tool definitions
+// Import flag handlers from advanced module
+const { handleSetMessageFlag, handleClearMessageFlag } = require('../advanced');
+
+// Consolidated email tool definitions (17 → 6)
 const emailTools = [
   {
-    name: 'list-emails',
-    description: 'Lists recent emails from your inbox',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        folder: {
-          type: 'string',
-          description:
-            "Email folder to list (e.g., 'inbox', 'sent', 'drafts', default: 'inbox')",
-        },
-        count: {
-          type: 'number',
-          description: 'Number of emails to retrieve (default: 25, max: 50)',
-        },
-        outputVerbosity: {
-          type: 'string',
-          enum: ['minimal', 'standard', 'full'],
-          description:
-            'Output detail level: minimal=IDs+subject only, standard=key fields (default), full=all fields with preview',
-        },
-      },
-      required: [],
-    },
-    handler: handleListEmails,
-  },
-  {
     name: 'search-emails',
-    description: 'Search for emails using various criteria',
+    description:
+      'Search and list emails. With no query, lists recent emails (like list-emails). Supports search queries, KQL, delta sync, message-id lookup, and conversation listing.',
+    annotations: {
+      title: 'Search Emails',
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        // Mode selectors (all optional — defaults to list mode)
+        deltaMode: {
+          type: 'boolean',
+          description:
+            'Enable delta sync mode. Returns only changes since last sync. Use deltaToken for subsequent calls.',
+        },
+        internetMessageId: {
+          type: 'string',
+          description:
+            'Look up email by Message-ID header (e.g. <abc123@example.com>). For threading/deduplication.',
+        },
+        conversationId: {
+          type: 'string',
+          description:
+            'Get all messages in a conversation thread by conversationId.',
+        },
+        groupByConversation: {
+          type: 'boolean',
+          description:
+            'List conversations (threads) grouped by conversationId instead of individual emails.',
+        },
+        // Search/list params
         query: {
           type: 'string',
-          description: 'Search query text to find in emails',
-        },
-        folder: {
-          type: 'string',
-          description: "Email folder to search in (default: 'inbox')",
-        },
-        from: {
-          type: 'string',
-          description: 'Filter by sender email address or name',
-        },
-        to: {
-          type: 'string',
-          description: 'Filter by recipient email address or name',
-        },
-        subject: {
-          type: 'string',
-          description: 'Filter by email subject',
-        },
-        hasAttachments: {
-          type: 'boolean',
-          description: 'Filter to only emails with attachments',
-        },
-        unreadOnly: {
-          type: 'boolean',
-          description: 'Filter to only unread emails',
-        },
-        receivedAfter: {
-          type: 'string',
-          description:
-            'Filter emails received after this date (ISO 8601 or YYYY-MM-DD)',
-        },
-        receivedBefore: {
-          type: 'string',
-          description:
-            'Filter emails received before this date (ISO 8601 or YYYY-MM-DD)',
-        },
-        searchAllFolders: {
-          type: 'boolean',
-          description:
-            'Search across all mail folders (default: false, searches only specified folder)',
-        },
-        count: {
-          type: 'number',
-          description: 'Number of results to return (default: 10, max: 50)',
-        },
-        outputVerbosity: {
-          type: 'string',
-          enum: ['minimal', 'standard', 'full'],
-          description:
-            'Output detail level: minimal=IDs+subject only, standard=key fields (default), full=all fields with preview',
+          description: 'Search query text. Omit for list mode.',
         },
         kqlQuery: {
           type: 'string',
           description:
-            'Raw KQL (Keyword Query Language) query for advanced users. Bypasses other search parameters when provided.',
+            'Raw KQL (Keyword Query Language) query for advanced search. Bypasses other search params.',
+        },
+        folder: {
+          type: 'string',
+          description: "Email folder (default: 'inbox')",
+        },
+        from: {
+          type: 'string',
+          description: 'Filter by sender email/name',
+        },
+        to: {
+          type: 'string',
+          description: 'Filter by recipient email/name',
+        },
+        subject: {
+          type: 'string',
+          description: 'Filter by subject',
+        },
+        hasAttachments: {
+          type: 'boolean',
+          description: 'Filter to emails with attachments',
+        },
+        unreadOnly: {
+          type: 'boolean',
+          description: 'Filter to unread emails only',
+        },
+        receivedAfter: {
+          type: 'string',
+          description: 'Filter emails received after date (ISO 8601)',
+        },
+        receivedBefore: {
+          type: 'string',
+          description: 'Filter emails received before date (ISO 8601)',
+        },
+        searchAllFolders: {
+          type: 'boolean',
+          description: 'Search across all mail folders',
+        },
+        count: {
+          type: 'number',
+          description:
+            'Number of results (list default: 25, search default: 10, max: 50)',
+        },
+        outputVerbosity: {
+          type: 'string',
+          enum: ['minimal', 'standard', 'full'],
+          description: 'Output detail level (default: standard)',
+        },
+        // Delta mode params
+        deltaToken: {
+          type: 'string',
+          description:
+            'Token from previous delta call for incremental sync (deltaMode only)',
+        },
+        maxResults: {
+          type: 'number',
+          description:
+            'Max results per page for delta sync (default: 100, max: 200)',
+        },
+        // Conversation params
+        includeHeaders: {
+          type: 'boolean',
+          description:
+            'Include email headers for each message (conversationId only)',
         },
       },
       required: [],
     },
-    handler: handleSearchEmails,
+    handler: async (args) => {
+      // Route to appropriate handler based on mode
+      if (args.deltaMode) {
+        return handleListEmailsDelta(args);
+      }
+      if (args.internetMessageId) {
+        return handleSearchByMessageId({
+          messageId: args.internetMessageId,
+          outputVerbosity: args.outputVerbosity,
+        });
+      }
+      if (args.conversationId) {
+        return handleGetConversation(args);
+      }
+      if (args.groupByConversation) {
+        return handleListConversations(args);
+      }
+      // If any search params provided, use search handler
+      if (
+        args.query ||
+        args.kqlQuery ||
+        args.from ||
+        args.to ||
+        args.subject ||
+        args.hasAttachments ||
+        args.unreadOnly ||
+        args.receivedAfter ||
+        args.receivedBefore ||
+        args.searchAllFolders
+      ) {
+        return handleSearchEmails(args);
+      }
+      // Default: list mode
+      return handleListEmails(args);
+    },
   },
   {
     name: 'read-email',
-    description: 'Reads the content of a specific email',
+    description:
+      'Read email content. Set headersMode=true for forensic headers (DKIM, SPF, Received, Message-ID).',
+    annotations: {
+      title: 'Read Email',
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -128,39 +189,72 @@ const emailTools = [
           type: 'string',
           description: 'ID of the email to read',
         },
+        headersMode: {
+          type: 'boolean',
+          description:
+            'Return forensic headers instead of email content (default: false)',
+        },
         includeHeaders: {
           type: 'boolean',
           description:
-            'Include email headers (Message-ID, Received, DKIM) for legal/forensic use (default: false)',
+            'Include basic headers alongside email content (default: false)',
         },
         outputVerbosity: {
           type: 'string',
           enum: ['minimal', 'standard', 'full'],
+          description: 'Output detail level (default: standard)',
+        },
+        // Headers mode params
+        groupByType: {
+          type: 'boolean',
           description:
-            'Output detail level: minimal=headers only, standard=full content (default), full=all fields including IDs',
+            'Group headers by category (headersMode only, default: false)',
+        },
+        importantOnly: {
+          type: 'boolean',
+          description:
+            'Show only important headers (headersMode only, default: false)',
+        },
+        raw: {
+          type: 'boolean',
+          description:
+            'Return raw JSON instead of Markdown (headersMode only, default: false)',
         },
       },
       required: ['id'],
     },
-    handler: handleReadEmail,
+    handler: async (args) => {
+      if (args.headersMode) {
+        return handleGetEmailHeaders(args);
+      }
+      return handleReadEmail(args);
+    },
   },
   {
     name: 'send-email',
-    description: 'Composes and sends a new email',
+    description:
+      'Compose and send an email. Use dryRun=true to preview without sending. Subject to rate limits and recipient allowlist when configured.',
+    annotations: {
+      title: 'Send Email',
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
         to: {
           type: 'string',
-          description: 'Comma-separated list of recipient email addresses',
+          description: 'Comma-separated recipient email addresses',
         },
         cc: {
           type: 'string',
-          description: 'Comma-separated list of CC recipient email addresses',
+          description: 'Comma-separated CC email addresses',
         },
         bcc: {
           type: 'string',
-          description: 'Comma-separated list of BCC recipient email addresses',
+          description: 'Comma-separated BCC email addresses',
         },
         subject: {
           type: 'string',
@@ -168,16 +262,21 @@ const emailTools = [
         },
         body: {
           type: 'string',
-          description: 'Email body content (can be plain text or HTML)',
+          description: 'Email body (plain text or HTML)',
         },
         importance: {
           type: 'string',
-          description: 'Email importance (normal, high, low)',
           enum: ['normal', 'high', 'low'],
+          description: 'Email importance (default: normal)',
         },
         saveToSentItems: {
           type: 'boolean',
-          description: 'Whether to save the email to sent items',
+          description: 'Save to sent items (default: true)',
+        },
+        dryRun: {
+          type: 'boolean',
+          description:
+            'Preview email without sending (default: false). Returns composed email for review.',
         },
       },
       required: ['to', 'subject', 'body'],
@@ -185,362 +284,234 @@ const emailTools = [
     handler: handleSendEmail,
   },
   {
-    name: 'mark-as-read',
-    description: 'Marks an email as read or unread',
+    name: 'update-email',
+    description:
+      'Update email state. action=mark-read/mark-unread changes read status. action=flag sets follow-up flag. action=unflag clears flag. action=complete marks flag as done.',
+    annotations: {
+      title: 'Update Email',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['mark-read', 'mark-unread', 'flag', 'unflag', 'complete'],
+          description: 'Action to perform (required)',
+        },
         id: {
           type: 'string',
-          description: 'ID of the email to mark as read/unread',
-        },
-        isRead: {
-          type: 'boolean',
           description:
-            'Whether to mark as read (true) or unread (false). Default: true',
+            'Single message ID (required for mark-read/mark-unread, or use instead of ids for flag actions)',
+        },
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Array of message IDs for batch flag/unflag/complete operations',
+        },
+        // Flag params
+        dueDateTime: {
+          type: 'string',
+          description: 'Due date/time for follow-up, ISO 8601 (action=flag)',
+        },
+        startDateTime: {
+          type: 'string',
+          description: 'Start date/time for follow-up, ISO 8601 (action=flag)',
         },
       },
-      required: ['id'],
+      required: ['action'],
     },
-    handler: handleMarkAsRead,
+    handler: async (args) => {
+      switch (args.action) {
+        case 'mark-read':
+          return handleMarkAsRead({ id: args.id, isRead: true });
+        case 'mark-unread':
+          return handleMarkAsRead({ id: args.id, isRead: false });
+        case 'flag':
+          return handleSetMessageFlag({
+            messageId: args.id,
+            messageIds: args.ids,
+            dueDateTime: args.dueDateTime,
+            startDateTime: args.startDateTime,
+          });
+        case 'unflag':
+          return handleClearMessageFlag({
+            messageId: args.id,
+            messageIds: args.ids,
+            markComplete: false,
+          });
+        case 'complete':
+          return handleClearMessageFlag({
+            messageId: args.id,
+            messageIds: args.ids,
+            markComplete: true,
+          });
+        default:
+          return {
+            content: [
+              {
+                type: 'text',
+                text: "Invalid action. Use 'mark-read', 'mark-unread', 'flag', 'unflag', or 'complete'.",
+              },
+            ],
+          };
+      }
+    },
   },
   {
-    name: 'list-attachments',
-    description: 'Lists all attachments for a specific email message',
+    name: 'attachments',
+    description:
+      'Manage email attachments. action=list shows attachments for a message. action=view shows content/metadata. action=download saves to disk.',
+    annotations: {
+      title: 'Attachments',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'view', 'download'],
+          description: 'Action to perform (default: list)',
+        },
         messageId: {
           type: 'string',
-          description: 'The ID of the email message to list attachments for',
+          description: 'Email message ID (required)',
+        },
+        attachmentId: {
+          type: 'string',
+          description: 'Attachment ID (action=view/download, required)',
+        },
+        savePath: {
+          type: 'string',
+          description:
+            'Directory to save file (action=download, default: current directory)',
         },
       },
       required: ['messageId'],
     },
-    handler: handleListAttachments,
-  },
-  {
-    name: 'download-attachment',
-    description: 'Downloads an attachment from an email and saves it to disk',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        messageId: {
-          type: 'string',
-          description: 'The ID of the email message',
-        },
-        attachmentId: {
-          type: 'string',
-          description: 'The ID of the attachment to download',
-        },
-        savePath: {
-          type: 'string',
-          description:
-            'Optional directory path to save the file (defaults to current directory)',
-        },
-      },
-      required: ['messageId', 'attachmentId'],
+    handler: async (args) => {
+      const action = args.action || 'list';
+      switch (action) {
+        case 'view':
+          return handleGetAttachmentContent(args);
+        case 'download':
+          return handleDownloadAttachment(args);
+        case 'list':
+        default:
+          return handleListAttachments(args);
+      }
     },
-    handler: handleDownloadAttachment,
   },
   {
-    name: 'get-attachment-content',
+    name: 'export',
     description:
-      'Gets attachment metadata and content (displays text files, provides info for binary files)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        messageId: {
-          type: 'string',
-          description: 'The ID of the email message',
-        },
-        attachmentId: {
-          type: 'string',
-          description: 'The ID of the attachment',
-        },
-      },
-      required: ['messageId', 'attachmentId'],
+      'Export emails. target=message exports one email. target=messages batch-exports. target=conversation exports a thread. target=mime gets raw MIME/EML content.',
+    annotations: {
+      title: 'Export Emails',
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
     },
-    handler: handleGetAttachmentContent,
-  },
-  {
-    name: 'export-email',
-    description:
-      'Export single email to disk (MIME/EML, Markdown, or JSON format)',
     inputSchema: {
       type: 'object',
       properties: {
+        target: {
+          type: 'string',
+          enum: ['message', 'messages', 'conversation', 'mime'],
+          description: 'Export target (default: message)',
+        },
+        // Single message export
         id: {
           type: 'string',
-          description: 'ID of the email to export (required)',
+          description: 'Email ID (target=message/mime, required)',
         },
         format: {
           type: 'string',
-          enum: ['mime', 'eml', 'markdown', 'json'],
+          enum: ['mime', 'eml', 'markdown', 'json', 'mbox', 'html'],
           description:
-            'Export format: mime/eml (RFC822), markdown (default), json',
+            'Export format (target=message: mime/eml/markdown/json, target=conversation: eml/mbox/markdown/json/html)',
         },
         savePath: {
           type: 'string',
-          description:
-            'File path or directory to save (default: current directory)',
+          description: 'File path or directory (target=message)',
         },
         includeAttachments: {
           type: 'boolean',
-          description: 'Include attachments (default: true)',
+          description:
+            'Include attachments (default: true for single, false for batch)',
         },
-      },
-      required: ['id'],
-    },
-    handler: handleExportEmail,
-  },
-  {
-    name: 'batch-export-emails',
-    description: 'Export multiple emails to directory (10-50 default, max 100)',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // Batch export
         emailIds: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Array of email IDs to export',
+          description: 'Email IDs to export (target=messages)',
         },
         searchQuery: {
           type: 'object',
           properties: {
-            folder: {
-              type: 'string',
-              description: 'Folder to search (default: inbox)',
-            },
-            from: { type: 'string', description: 'Filter by sender' },
-            subject: { type: 'string', description: 'Filter by subject' },
-            receivedAfter: {
-              type: 'string',
-              description: 'Filter emails after date (ISO 8601)',
-            },
-            receivedBefore: {
-              type: 'string',
-              description: 'Filter emails before date (ISO 8601)',
-            },
-            maxResults: {
-              type: 'number',
-              description: 'Max emails to export (default: 25, max: 100)',
-            },
+            folder: { type: 'string' },
+            from: { type: 'string' },
+            subject: { type: 'string' },
+            receivedAfter: { type: 'string' },
+            receivedBefore: { type: 'string' },
+            maxResults: { type: 'number' },
           },
-          description: 'Search query to find emails (alternative to emailIds)',
-        },
-        format: {
-          type: 'string',
-          enum: ['mime', 'markdown', 'json'],
-          description: 'Export format (default: markdown)',
+          description:
+            'Search query to find emails (target=messages, alternative to emailIds)',
         },
         outputDir: {
           type: 'string',
-          description: 'Output directory path (required)',
-        },
-        includeAttachments: {
-          type: 'boolean',
-          description: 'Include attachments (default: false for batch)',
-        },
-      },
-      required: ['outputDir'],
-    },
-    handler: handleBatchExportEmails,
-  },
-  {
-    name: 'list-emails-delta',
-    description:
-      'Incremental sync - get only changes since last sync. Returns deltaToken for next call.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        folder: {
-          type: 'string',
-          description: 'Folder to sync (default: inbox)',
-        },
-        deltaToken: {
-          type: 'string',
-          description: 'Token from previous delta call (omit for initial sync)',
-        },
-        maxResults: {
-          type: 'number',
-          description: 'Max results per page (default: 100, max: 200)',
-        },
-        outputVerbosity: {
-          type: 'string',
-          enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
-        },
-      },
-      required: [],
-    },
-    handler: handleListEmailsDelta,
-  },
-  {
-    name: 'search-by-message-id',
-    description:
-      'Find email by internetMessageId header (for threading, deduplication)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        messageId: {
-          type: 'string',
           description:
-            'Full Message-ID header value (e.g., <abc123@example.com>)',
+            'Output directory (target=messages/conversation, required)',
         },
-        outputVerbosity: {
-          type: 'string',
-          enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
-        },
-      },
-      required: ['messageId'],
-    },
-    handler: handleSearchByMessageId,
-  },
-  {
-    name: 'get-email-headers',
-    description:
-      'Get all email headers for forensics, spam analysis, delivery troubleshooting, or threading',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'string',
-          description: 'ID of the email to get headers from (required)',
-        },
-        groupByType: {
-          type: 'boolean',
-          description:
-            'Group headers by category (Threading, Authentication, Delivery, etc.). Default: false',
-        },
-        importantOnly: {
-          type: 'boolean',
-          description:
-            'Show only important headers (DKIM, SPF, Received, Message-ID, etc.). Default: false',
-        },
-        raw: {
-          type: 'boolean',
-          description:
-            'Return raw JSON instead of formatted Markdown. Default: false',
-        },
-      },
-      required: ['id'],
-    },
-    handler: handleGetEmailHeaders,
-  },
-  {
-    name: 'get-mime-content',
-    description:
-      'Get raw MIME/EML content of an email for archival, forensics, or forwarding',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'string',
-          description: 'ID of the email to get MIME content from (required)',
-        },
-        headersOnly: {
-          type: 'boolean',
-          description: 'Return only MIME headers without body. Default: false',
-        },
-        base64: {
-          type: 'boolean',
-          description:
-            'Return content as base64 encoded (for binary safety). Default: false',
-        },
-        maxSize: {
-          type: 'number',
-          description:
-            'Max content size in bytes to return (default: 1MB, 0 = no limit)',
-        },
-      },
-      required: ['id'],
-    },
-    handler: handleGetMimeContent,
-  },
-  {
-    name: 'list-conversations',
-    description: 'List email conversations (threads) grouped by conversationId',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        folder: {
-          type: 'string',
-          description: 'Folder to scan (default: inbox)',
-        },
-        count: {
-          type: 'number',
-          description:
-            'Number of conversations to return (default: 20, max: 50)',
-        },
-        outputVerbosity: {
-          type: 'string',
-          enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
-        },
-      },
-      required: [],
-    },
-    handler: handleListConversations,
-  },
-  {
-    name: 'get-conversation',
-    description: 'Get all messages in an email conversation thread',
-    inputSchema: {
-      type: 'object',
-      properties: {
+        // Conversation export
         conversationId: {
           type: 'string',
-          description: 'Conversation ID to retrieve (required)',
-        },
-        includeHeaders: {
-          type: 'boolean',
-          description: 'Include email headers for each message. Default: false',
-        },
-        outputVerbosity: {
-          type: 'string',
-          enum: ['minimal', 'standard', 'full'],
-          description: 'Output detail level (default: standard)',
-        },
-      },
-      required: ['conversationId'],
-    },
-    handler: handleGetConversation,
-  },
-  {
-    name: 'export-conversation',
-    description:
-      'Export entire email conversation to various formats (EML, MBOX, Markdown, JSON, HTML)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        conversationId: {
-          type: 'string',
-          description: 'Conversation ID to export (required)',
-        },
-        format: {
-          type: 'string',
-          enum: ['eml', 'mbox', 'markdown', 'json', 'html'],
-          description: 'Export format (default: markdown)',
-        },
-        outputDir: {
-          type: 'string',
-          description: 'Output directory path (required)',
-        },
-        includeAttachments: {
-          type: 'boolean',
-          description: 'Include attachments (default: true)',
+          description: 'Conversation ID (target=conversation, required)',
         },
         order: {
           type: 'string',
           enum: ['chronological', 'reverse'],
-          description: 'Message order (default: chronological)',
+          description:
+            'Message order (target=conversation, default: chronological)',
+        },
+        // MIME params
+        headersOnly: {
+          type: 'boolean',
+          description: 'MIME headers only, no body (target=mime)',
+        },
+        base64: {
+          type: 'boolean',
+          description: 'Return base64 encoded (target=mime)',
+        },
+        maxSize: {
+          type: 'number',
+          description: 'Max content size in bytes (target=mime, default: 1MB)',
         },
       },
-      required: ['conversationId', 'outputDir'],
+      required: [],
     },
-    handler: handleExportConversation,
+    handler: async (args) => {
+      const target = args.target || 'message';
+      switch (target) {
+        case 'messages':
+          return handleBatchExportEmails(args);
+        case 'conversation':
+          return handleExportConversation(args);
+        case 'mime':
+          return handleGetMimeContent(args);
+        case 'message':
+        default:
+          return handleExportEmail(args);
+      }
+    },
   },
 ];
 
