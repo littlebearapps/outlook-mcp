@@ -44,13 +44,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm ci
-      - run: npm test -- --coverage
-      - name: Upload coverage
-        if: matrix.node-version == 20
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+      - run: npm test
 
   security:
     name: Security Audit

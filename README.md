@@ -10,7 +10,6 @@
   <a href="https://www.npmjs.com/package/@littlebearapps/outlook-mcp"><img src="https://img.shields.io/npm/v/@littlebearapps/outlook-mcp" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/@littlebearapps/outlook-mcp"><img src="https://img.shields.io/npm/dm/@littlebearapps/outlook-mcp" alt="npm downloads" /></a>
   <a href="https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml"><img src="https://github.com/littlebearapps/outlook-mcp/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://codecov.io/gh/littlebearapps/outlook-mcp"><img src="https://codecov.io/gh/littlebearapps/outlook-mcp/graph/badge.svg" alt="codecov" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen" alt="Node.js" /></a>
 </p>
@@ -338,8 +337,10 @@ USE_TEST_MODE=true npm start
 
 | Guide | Description |
 |-------|-------------|
+| [How-To Guides](docs/how-to/index.md) | 25 practical guides for email, calendar, contacts, and settings |
 | [Azure Setup Guide](docs/guides/azure-setup.md) | Azure account creation, app registration, permissions, and secrets |
 | [Tools Reference](docs/quickrefs/tools-reference.md) | All 20 tools with parameters |
+| [AI Agent Guide](docs/how-to/ai-agents/using-outlook-mcp-in-agents.md) | Tool selection and workflow patterns for AI agents |
 
 Full documentation: [docs/](docs/README.md)
 
