@@ -13,7 +13,7 @@ Practical guides for managing your Microsoft 365 email, calendar, contacts, and 
 | Guide | What it covers |
 |-------|---------------|
 | [Connect Outlook to Claude](getting-started/connect-outlook-to-claude.md) | Install, Azure app setup, Claude Desktop/Code config, first authentication |
-| [Verify Your Connection](getting-started/verify-your-connection.md) | Check auth status, re-authenticate, troubleshoot connection issues |
+| [Verify Your Connection](getting-started/verify-your-connection.md) | Check auth status, re-authenticate, troubleshoot connection issues, FAQ |
 
 ## Email
 

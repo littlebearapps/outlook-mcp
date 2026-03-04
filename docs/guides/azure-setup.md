@@ -44,7 +44,7 @@ App registration is part of **Microsoft Entra ID Free tier** and costs nothing. 
 1. Sign in to [portal.azure.com](https://portal.azure.com)
 2. In the top search bar, type **App registrations** and select it
 
-> **Note**: This is part of **Microsoft Entra ID** (formerly called Azure Active Directory / Azure AD). Microsoft renamed it in 2023, but the functionality is identical. You may also access it via [entra.microsoft.com](https://entra.microsoft.com) > Identity > Applications > App registrations.
+> **Note**: App registrations are part of **Microsoft Entra ID** (formerly Azure Active Directory). Microsoft's newer portal at [entra.microsoft.com](https://entra.microsoft.com) also provides access via Identity > Applications > App registrations. Both portals work identically — use whichever you prefer.
 
 ### Create the Registration
 
@@ -119,7 +119,9 @@ Outlook MCP needs permission to access your mailbox data. These are **delegated 
 
 ### For Work/School Accounts: Admin Consent
 
-If you're using a work/school Microsoft 365 account, your organisation may require **admin consent** for certain permissions. Since October 2025, Microsoft's default policy requires admin consent for mail and calendar permissions on organisational accounts.
+If you're using a work/school Microsoft 365 account, your organisation may require **admin consent** for certain permissions. This depends on your organisation's **user consent settings** in Microsoft Entra ID — it is not a universal Microsoft requirement. Some organisations restrict users from granting apps access to mail and calendar data without admin approval.
+
+**How to tell if admin consent is needed**: When you try to authenticate, Microsoft will either let you grant permissions yourself, or show a message saying "Need admin approval". If you see the latter, your organisation requires admin consent for this app.
 
 **If you're the admin**: Click the **Grant admin consent for [your organisation]** button on the API permissions page.
 
@@ -305,8 +307,25 @@ npx kill-port 3333
 npm run auth-server
 ```
 
+---
+
+### Missing Permissions / Scope Mismatch After Adding New Permissions
+
+**Cause**: You added new API permissions in Azure Portal but your existing tokens still have the old scopes.
+
+**Fix**: Delete your token file and re-authenticate to pick up the new permissions:
+
+```bash
+rm ~/.outlook-mcp-tokens.json
+npm run auth-server
+# Then use the auth tool with action=authenticate in Claude
+```
+
+After re-authenticating, use the `auth` tool with `action=status` to verify the new scopes appear in the token.
+
 ## What's Next?
 
+- [Connect Outlook to Claude](../how-to/getting-started/connect-outlook-to-claude.md) — Install, configure your MCP client, and authenticate
 - [README](../../README.md) — Full feature overview and configuration
 - [Tools Reference](../quickrefs/tools-reference.md) — All 20 tools with parameters
 - [Back to Docs](../README.md)

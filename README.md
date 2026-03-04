@@ -151,7 +151,7 @@ Add to your Claude Desktop config (`claude_desktop_config.json`):
 3. Open the URL, sign in with your Microsoft account, and grant permissions
 4. Tokens are saved locally and refresh automatically
 
-> **Note**: The auth server needs the same `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` environment variables. When using Claude Desktop/Code, these are passed from your MCP config automatically.
+> **Note**: The auth server needs `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` environment variables. The Claude Desktop/Code `"env"` config only applies to the MCP server process — when running the auth server separately, ensure these are set in a `.env` file or exported in your shell.
 
 ## Installation
 
@@ -279,7 +279,7 @@ npm run auth-server
 
 This starts a local server on port 3333 to handle the OAuth callback.
 
-> **Note**: The auth server reads `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` from environment variables (or `MS_CLIENT_ID`/`MS_CLIENT_SECRET`). When running from source, ensure your `.env` file is in the project root. When using Claude Desktop or Claude Code, the env vars from your MCP config are passed automatically.
+> **Note**: The auth server reads `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` from environment variables (or `MS_CLIENT_ID`/`MS_CLIENT_SECRET`). When running the auth server separately, ensure your `.env` file is in the project root or export the variables in your shell. The Claude Desktop/Code `"env"` config only applies to the MCP server process, not a separately-started auth server.
 
 ### Step 2: Authenticate
 
@@ -375,8 +375,10 @@ USE_TEST_MODE=true npm start
 
 | Guide | Description |
 |-------|-------------|
-| [How-To Guides](docs/how-to/index.md) | 25 practical guides for email, calendar, contacts, and settings |
+| [Getting Started](docs/how-to/getting-started/connect-outlook-to-claude.md) | Install, configure, and authenticate — start here |
 | [Azure Setup Guide](docs/guides/azure-setup.md) | Azure account creation, app registration, permissions, and secrets |
+| [How-To Guides](docs/how-to/index.md) | 25 practical guides for email, calendar, contacts, and settings |
+| [Troubleshooting & FAQ](docs/how-to/getting-started/verify-your-connection.md#common-connection-problems) | Common problems, re-authentication, and frequently asked questions |
 | [Tools Reference](docs/quickrefs/tools-reference.md) | All 20 tools with parameters |
 | [AI Agent Guide](docs/how-to/ai-agents/using-outlook-mcp-in-agents.md) | Tool selection and workflow patterns for AI agents |
 

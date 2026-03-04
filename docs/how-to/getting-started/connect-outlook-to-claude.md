@@ -95,6 +95,21 @@ Add to your `.mcp.json` or project settings:
 
 Any MCP-compatible client can use Outlook MCP. Set the command to `npx -y @littlebearapps/outlook-mcp` and pass the two environment variables.
 
+## Understanding the Two Processes
+
+Outlook MCP has two separate processes that serve different purposes:
+
+| Process | Purpose | When to run | How it runs |
+|---------|---------|-------------|-------------|
+| **MCP server** (`index.js`) | Handles all 20 Outlook tools — searching emails, reading calendar, etc. | Always (runs automatically) | Claude Desktop/Code starts it from your MCP config |
+| **Auth server** (`outlook-auth-server.js`) | Handles OAuth login — the one-time browser authentication flow | Only during initial setup or re-authentication | You start it manually with `npx @littlebearapps/outlook-mcp auth-server` |
+
+**Key points:**
+- The **MCP server** is what Claude talks to. It starts automatically when Claude Desktop or Claude Code launches.
+- The **auth server** is a temporary helper that runs on port 3333 to receive the OAuth callback from Microsoft. You only need it when authenticating or re-authenticating.
+- After authentication succeeds, you can stop the auth server. The MCP server handles token refresh on its own.
+- Both processes need `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET`. The MCP config `"env"` block provides these to the MCP server automatically. For the auth server, you need to either set them as shell environment variables or have a `.env` file in the project root.
+
 ## Authenticate for the First Time
 
 1. Start the OAuth server:
@@ -103,7 +118,9 @@ Any MCP-compatible client can use Outlook MCP. Set the command to `npx -y @littl
 npx @littlebearapps/outlook-mcp auth-server
 ```
 
-> **Note**: The auth server needs `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` environment variables. When using Claude Desktop or Claude Code, these are passed from your MCP config automatically. When running from source, ensure your `.env` file is in the project root.
+> **Important**: The auth server needs `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` environment variables. These are **not** automatically inherited from your Claude Desktop/Code MCP config — that config only applies to the MCP server process. Either:
+> - Create a `.env` file in the project root (copy from `.env.example`), or
+> - Export the variables in your shell before running the command
 
 2. Ask Claude to authenticate:
 

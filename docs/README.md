@@ -38,5 +38,6 @@ Popular guides:
 
 ## Need Help?
 
-- [Troubleshooting](guides/azure-setup.md#troubleshooting) — Common Azure and auth issues
+- [Azure Troubleshooting](guides/azure-setup.md#troubleshooting) — App registration, secrets, and permission errors
+- [Connection Troubleshooting & FAQ](how-to/getting-started/verify-your-connection.md#common-connection-problems) — Auth failures, token issues, re-authentication, and FAQ
 - [Open an Issue](https://github.com/littlebearapps/outlook-mcp/issues/new/choose) — Report bugs or request features
