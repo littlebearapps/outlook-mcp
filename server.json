@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.littlebearapps/outlook-mcp",
+  "description": "MCP server for Microsoft Outlook via Graph API. 20 consolidated tools for email, calendar, contacts, folders, rules, categories, and settings with safety controls (dry-run preview, rate limiting, recipient allowlists) and MCP annotations on every tool.",
+  "repository": {
+    "url": "https://github.com/littlebearapps/outlook-mcp",
+    "source": "github"
+  },
+  "version": "3.2.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@littlebearapps/outlook-mcp",
+      "version": "3.2.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Azure AD application client ID",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false,
+          "name": "OUTLOOK_CLIENT_ID"
+        },
+        {
+          "description": "Azure AD application client secret value",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true,
+          "name": "OUTLOOK_CLIENT_SECRET"
+        }
+      ]
+    }
+  ]
+}
