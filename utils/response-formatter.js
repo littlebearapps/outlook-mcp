@@ -481,12 +481,18 @@ function stripHtml(html) {
 function escapeCSV(value) {
   if (value === null || value === undefined) return '';
   const str = String(value);
-  if (
+  const needsQuoting =
     str.includes(',') ||
     str.includes('"') ||
     str.includes('\n') ||
-    str.includes('\r')
-  ) {
+    str.includes('\r');
+  const formulaChars = ['=', '+', '-', '@', '\t', '\r'];
+  const isFormula = formulaChars.some((ch) => str.startsWith(ch));
+
+  if (isFormula) {
+    return '"' + "'" + str.replace(/"/g, '""') + '"';
+  }
+  if (needsQuoting) {
     return '"' + str.replace(/"/g, '""') + '"';
   }
   return str;
@@ -512,4 +518,5 @@ module.exports = {
   formatRecipients,
   truncateText,
   stripHtml,
+  escapeCSV,
 };

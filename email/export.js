@@ -11,8 +11,8 @@ const { callGraphAPI, callGraphAPIRaw } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 const {
   formatEmailContent,
-  VERBOSITY,
   formatEmailsAsCSV,
+  VERBOSITY,
 } = require('../utils/response-formatter');
 const { getEmailFields } = require('../utils/field-presets');
 
