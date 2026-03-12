@@ -29,6 +29,19 @@ describe('escapeCSV', () => {
     expect(escapeCSV('line1\rline2')).toBe('"line1\rline2"');
   });
 
+  it('prefixes with single-quote when value starts with a tab character', () => {
+    expect(escapeCSV('\t=formula')).toBe('"\'\t=formula"');
+  });
+
+  it('prefixes with single-quote when value starts with a newline character', () => {
+    expect(escapeCSV('\n=formula')).toBe('"\'\n=formula"');
+  });
+
+  it('does not double-protect a safe value that happens to contain =', () => {
+    // '=' not at start — should not be formula-protected
+    expect(escapeCSV('a=b')).toBe('a=b');
+  });
+
   // CSV injection protection
   it('prefixes with single-quote when value starts with formulaChar', () => {
     const result = escapeCSV('=CMD("cmd","/C calc")');
@@ -40,15 +53,6 @@ describe('escapeCSV', () => {
     expect(plusPrefixResult).toBe(`"'+1234"`);
     expect(minusPrefixResult).toBe(`"'-SUM(A1)"`);
     expect(atPrefixResult).toBe(`"'@SUM(1+1)"`);
-  });
-
-  it('prefixes with single-quote when value starts with a tab character', () => {
-    expect(escapeCSV('\t=formula')).toBe('"\'\t=formula"');
-  });
-
-  it('does not double-protect a safe value that happens to contain =', () => {
-    // '=' not at start — should not be formula-protected
-    expect(escapeCSV('a=b')).toBe('a=b');
   });
 });
 

@@ -14,7 +14,7 @@ const { ensureAuthenticated } = require('../auth');
 const { getEmailFields } = require('../utils/field-presets');
 const {
   formatEmailContent,
-  escapeCSV,
+  formatEmailsAsCSV,
   VERBOSITY,
 } = require('../utils/response-formatter');
 
@@ -607,28 +607,7 @@ async function handleExportConversation(args) {
       case 'csv': {
         // Export as CSV
         const csvPath = path.join(resolvedDir, `${filenameBase}.csv`);
-        const csvHeaders = ['From', 'To', 'CC', 'Date', 'Subject', 'Body'];
-        const csvRows = messages.map((msg) => {
-          const from = msg.from?.emailAddress?.address || '';
-          const to =
-            msg.toRecipients?.map((r) => r.emailAddress?.address).join('; ') ||
-            '';
-          const cc =
-            msg.ccRecipients?.map((r) => r.emailAddress?.address).join('; ') ||
-            '';
-          const body = msg.body?.content || '';
-          return [
-            from,
-            to,
-            cc,
-            msg.receivedDateTime || '',
-            msg.subject || '',
-            body,
-          ]
-            .map(escapeCSV)
-            .join(',');
-        });
-        const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+        const csvContent = formatEmailsAsCSV(messages);
         fs.writeFileSync(csvPath, csvContent, 'utf8');
         exportStats.bytes = Buffer.byteLength(csvContent, 'utf8');
         exportedFiles.push(csvPath);

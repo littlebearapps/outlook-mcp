@@ -114,7 +114,7 @@ async function handleExportEmail(args) {
       // JSON export - full email object
       content = JSON.stringify(email, null, 2);
     } else if (format === EXPORT_FORMATS.CSV) {
-      // CSV export - simplified format
+      // CSV export - email metadata
       content = formatEmailsAsCSV(email);
     } else {
       return {

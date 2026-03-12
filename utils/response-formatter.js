@@ -486,7 +486,7 @@ function escapeCSV(value) {
     str.includes('"') ||
     str.includes('\n') ||
     str.includes('\r');
-  const formulaChars = ['=', '+', '-', '@', '\t', '\r'];
+  const formulaChars = ['=', '+', '-', '@', '\t', '\r', '\n'];
   const isFormula = formulaChars.some((ch) => str.startsWith(ch));
 
   if (isFormula) {
