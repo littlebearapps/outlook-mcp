@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`search-emails` folder resolution** — well-known Graph API folder names (`sentitems`, `deleteditems`, `junkemail`) and display names (`Sent Items`, `Deleted Items`, `Junk Email`) now resolve correctly (#79)
 - **`mailbox-settings` timeZone** — `section=timeZone` no longer returns `[object Object]`; extracts scalar value from Graph API response envelope (#80)
 - **`update-email` flag dueDateTime** — corrected datetime format (strip trailing Z), uses configured timezone instead of hardcoded UTC, auto-generates required `startDateTime` (#81)
+- **Batch CSV export filename collision** — same-day exports no longer overwrite; filenames now use full ISO timestamp instead of date-only (#82)
 
 ### Changed
 
