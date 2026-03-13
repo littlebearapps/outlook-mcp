@@ -1,8 +1,12 @@
 # Auto-tag and release on version bump
 #
 # When a push to main changes the version in package.json,
-# automatically creates a git tag (e.g. v3.4.0) and GitHub Release.
-# The tag triggers the publish.yml workflow to publish to npm.
+# automatically creates a git tag (e.g. v3.4.0) and GitHub Release,
+# then triggers the publish.yml workflow via workflow_dispatch.
+#
+# Note: Tag pushes from GITHUB_TOKEN don't trigger downstream workflows
+# (GitHub's infinite loop prevention). We work around this by using
+# workflow_dispatch, which IS exempt from that restriction.
 #
 # This eliminates the manual steps of running:
 #   git tag v3.4.0 && git push origin v3.4.0 && gh release create v3.4.0
@@ -16,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   auto-tag:
@@ -76,3 +81,12 @@ jobs:
           TAG="v${{ steps.version.outputs.current }}"
           gh release create "$TAG" --generate-notes --title "$TAG"
           echo "Created GitHub Release: $TAG"
+
+      - name: Trigger npm publish
+        if: steps.version.outputs.changed == 'true' && steps.check-tag.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.version.outputs.current }}"
+          gh workflow run publish.yml --ref "$TAG"
+          echo "Triggered publish workflow for $TAG"

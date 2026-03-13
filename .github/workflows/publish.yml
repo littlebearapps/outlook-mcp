@@ -3,12 +3,14 @@
 # Publishes the package to npm when a version tag is pushed.
 # Uses NPM_TOKEN (GitHub Actions secret) for authentication.
 #
+# Triggers:
+# 1. Tag push (manual): git push origin v3.4.1
+# 2. workflow_dispatch (from auto-tag.yml): gh workflow run publish.yml --ref v3.4.1
+#    GitHub exempts workflow_dispatch from the GITHUB_TOKEN trigger restriction,
+#    so auto-tag can chain into publish without needing a PAT.
+#
 # Prerequisites:
 # 1. Set NPM_TOKEN as a GitHub Actions secret (granular access token from npmjs.com)
-#
-# Usage:
-#   npm version patch  # or minor/major
-#   git push origin main --tags
 #
 # Future: migrate to OIDC trusted publishing when npmjs.com trusted publisher
 # is configured (org=littlebearapps, repo=outlook-assistant, workflow=publish.yml)
@@ -22,6 +24,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   id-token: write # Required for provenance attestation
