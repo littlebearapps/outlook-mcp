@@ -8,6 +8,10 @@
 # (GitHub's infinite loop prevention). We work around this by using
 # workflow_dispatch, which IS exempt from that restriction.
 #
+# Full release chain:
+#   version bump on main → auto-tag → GitHub Release → publish.yml
+#   → npm publish + MCP Registry publish (via OIDC)
+#
 # This eliminates the manual steps of running:
 #   git tag v3.4.0 && git push origin v3.4.0 && gh release create v3.4.0
 
@@ -82,7 +86,7 @@ jobs:
           gh release create "$TAG" --generate-notes --title "$TAG"
           echo "Created GitHub Release: $TAG"
 
-      - name: Trigger npm publish
+      - name: Trigger publish (npm + MCP Registry)
         if: steps.version.outputs.changed == 'true' && steps.check-tag.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
