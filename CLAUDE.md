@@ -14,6 +14,24 @@ npm run inspect          # MCP Inspector for interactive testing
 npx kill-port 3333       # Kill auth server if port blocked
 ```
 
+### Auth Server (bws/direnv)
+
+The auth server needs `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` env vars. These are stored in Bitwarden Secrets Manager as `outlook-client-id` and `outlook-client-secret`. Claude Code shells don't inherit direnv, so start the auth server manually:
+
+```bash
+source ~/bin/kc.sh && \
+  export OUTLOOK_CLIENT_ID=$(kc_get outlook-client-id) && \
+  export OUTLOOK_CLIENT_SECRET=$(kc_get outlook-client-secret) && \
+  node outlook-auth-server.js
+```
+
+The MCP server itself gets credentials via `.mcp.json` inline `kc_get` calls — no manual export needed for normal operation.
+
+For remote testing (e.g. MacBook → VPS), SSH tunnel port 3333:
+```bash
+ssh -fNL 3333:localhost:3333 lba-1
+```
+
 ## Architecture
 
 ```

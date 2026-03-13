@@ -35,6 +35,7 @@ Thumbs.db
 logs
 *.log
 
-# Internal plans and promotion
+# Internal plans, promotion, and test results
 docs/plans/
 docs/promotion/
+docs/tests/

@@ -26,7 +26,7 @@ if (!homeDir) {
 module.exports = {
   // Server information
   SERVER_NAME: 'outlook-assistant',
-  SERVER_VERSION: '3.3.0',
+  SERVER_VERSION: require('./package.json').version,
 
   // Test mode setting
   USE_TEST_MODE: process.env.USE_TEST_MODE === 'true',

@@ -17,7 +17,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "version": "node -e \"const s=require('./server.json');const p=require('./package.json');s.version=p.version;s.packages[0].version=p.version;require('fs').writeFileSync('./server.json',JSON.stringify(s,null,2)+'\\n')\" && git add server.json"
   },
   "lint-staged": {
     "*.js": [
