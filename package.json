@@ -70,7 +70,8 @@
     ".env.example",
     "README.md",
     "LICENSE",
-    "llms.txt"
+    "llms.txt",
+    "llms-install.md"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
