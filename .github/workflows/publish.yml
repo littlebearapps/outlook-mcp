@@ -64,14 +64,28 @@ jobs:
         run: npm test
 
       - name: Publish to npm
+        id: npm-publish
+        continue-on-error: true
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify npm publication
         run: |
-          sleep 10
-          npm view @littlebearapps/outlook-assistant version
+          EXPECTED=$(node -p "require('./package.json').version")
+          if [ "${{ steps.npm-publish.outcome }}" = "failure" ]; then
+            sleep 5
+            PUBLISHED=$(npm view @littlebearapps/outlook-assistant version 2>/dev/null || echo "none")
+            if [ "$PUBLISHED" = "$EXPECTED" ]; then
+              echo "Version $EXPECTED already on npm — continuing to MCP Registry"
+            else
+              echo "::error::npm publish failed and version $EXPECTED is not on npm (found: $PUBLISHED)"
+              exit 1
+            fi
+          else
+            sleep 10
+            npm view @littlebearapps/outlook-assistant version
+          fi
 
       - name: Install mcp-publisher
         run: |
