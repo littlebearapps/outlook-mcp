@@ -106,7 +106,7 @@ async function handleListCategories(args) {
     }
 
     // Format output based on verbosity
-    let output = [];
+    const output = [];
     output.push(`# Master Categories (${categories.length})\n`);
 
     if (outputVerbosity === 'minimal') {
@@ -117,7 +117,7 @@ async function handleListCategories(args) {
       categories.forEach((cat) => {
         const colorName = COLOR_NAMES[cat.color] || cat.color;
         const idDisplay =
-          outputVerbosity === 'full' ? cat.id : cat.id.substring(0, 8) + '...';
+          outputVerbosity === 'full' ? cat.id : `${cat.id.substring(0, 8)}...`;
         output.push(`| ${cat.displayName} | ${colorName} | ${idDisplay} |`);
       });
     }
@@ -503,7 +503,7 @@ async function handleApplyCategory(args) {
       }
     }
 
-    let output = [];
+    const output = [];
 
     if (results.length > 0) {
       output.push(
@@ -591,7 +591,7 @@ async function handleGetFocusedInboxOverrides(args) {
       };
     }
 
-    let output = [];
+    const output = [];
     output.push(`# Focused Inbox Overrides (${overrides.length})\n`);
 
     // Group by classification

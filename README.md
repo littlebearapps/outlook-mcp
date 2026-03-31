@@ -67,7 +67,7 @@ Outlook Assistant connects AI assistants to your Microsoft Outlook account throu
 | **Categories** | 3 | `manage-category` (CRUD), `apply-category`, `manage-focused-inbox` |
 | **Settings** | 1 | `mailbox-settings` (get/set auto-replies/set working hours) |
 | **Folder** | 1 | `folders` (list/create/move/stats/delete) |
-| **Rules** | 1 | `manage-rules` (list/create/reorder/delete) |
+| **Rules** | 1 | `manage-rules` (list/create/update/reorder/delete) |
 | **Advanced** | 2 | `access-shared-mailbox`, `find-meeting-rooms` |
 | **Auth** | 1 | `auth` (status/authenticate/about) |
 

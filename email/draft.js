@@ -83,8 +83,9 @@ function formatDraftResponse(draft, actionLabel) {
   text += `**ID**: \`${draft.id}\`\n`;
   if (draft.subject) text += `**Subject**: ${draft.subject}\n`;
   if (to) text += `**To**: ${to}\n`;
-  if (draft.lastModifiedDateTime)
+  if (draft.lastModifiedDateTime) {
     text += `**Modified**: ${draft.lastModifiedDateTime}\n`;
+  }
   if (draft.hasAttachments) text += `**Attachments**: yes\n`;
 
   return {
@@ -169,13 +170,10 @@ async function handleCreateDraft(args) {
         content: [
           {
             type: 'text',
-            text:
-              tipsText +
-              '\n\n---\n\n' +
-              preview.content[0].text.replace(
-                'Email NOT sent',
-                'Draft NOT saved'
-              ),
+            text: `${tipsText}\n\n---\n\n${preview.content[0].text.replace(
+              'Email NOT sent',
+              'Draft NOT saved'
+            )}`,
           },
         ],
         _meta: { mailTips: tipsResult._meta },

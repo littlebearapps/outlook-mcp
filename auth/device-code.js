@@ -92,7 +92,9 @@ async function pollForToken(clientId, deviceCode, interval, expiresIn) {
   let pollInterval = interval;
 
   while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, pollInterval * 1000));
+    await new Promise((resolve) => {
+      setTimeout(resolve, pollInterval * 1000);
+    });
 
     const postData = querystring.stringify({
       client_id: clientId,

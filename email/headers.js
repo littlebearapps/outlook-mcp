@@ -49,7 +49,7 @@ function formatHeaders(headers, options = {}) {
     return '*No headers available*';
   }
 
-  let output = [];
+  const output = [];
 
   if (groupByType) {
     // Group headers by category
@@ -65,7 +65,7 @@ function formatHeaders(headers, options = {}) {
     headers.forEach((h) => {
       const name = h.name;
       if (['Message-ID', 'In-Reply-To', 'References'].includes(name)) {
-        groups['Threading'].push(h);
+        groups.Threading.push(h);
       } else if (
         [
           'Authentication-Results',
@@ -74,9 +74,9 @@ function formatHeaders(headers, options = {}) {
           'Received-SPF',
         ].includes(name)
       ) {
-        groups['Authentication'].push(h);
+        groups.Authentication.push(h);
       } else if (name === 'Received' || name.startsWith('X-MS-Exchange')) {
-        groups['Delivery'].push(h);
+        groups.Delivery.push(h);
       } else if (
         name.includes('Antispam') ||
         name.includes('SCL') ||
@@ -88,9 +88,9 @@ function formatHeaders(headers, options = {}) {
           name
         )
       ) {
-        groups['Content'].push(h);
+        groups.Content.push(h);
       } else {
-        groups['Other'].push(h);
+        groups.Other.push(h);
       }
     });
 
@@ -100,7 +100,7 @@ function formatHeaders(headers, options = {}) {
         groupHeaders.forEach((h) => {
           // Truncate very long values
           const value =
-            h.value.length > 500 ? h.value.substring(0, 500) + '...' : h.value;
+            h.value.length > 500 ? `${h.value.substring(0, 500)}...` : h.value;
           output.push(`**${h.name}**: \`${value}\``);
         });
       }
@@ -123,7 +123,7 @@ function formatHeaders(headers, options = {}) {
       output.push('## Key Headers\n');
       importantHeaders.forEach((h) => {
         const value =
-          h.value.length > 300 ? h.value.substring(0, 300) + '...' : h.value;
+          h.value.length > 300 ? `${h.value.substring(0, 300)}...` : h.value;
         output.push(`**${h.name}**:`);
         output.push('```');
         output.push(value);
@@ -135,7 +135,7 @@ function formatHeaders(headers, options = {}) {
       output.push('\n## All Other Headers\n');
       otherHeaders.forEach((h) => {
         const value =
-          h.value.length > 200 ? h.value.substring(0, 200) + '...' : h.value;
+          h.value.length > 200 ? `${h.value.substring(0, 200)}...` : h.value;
         output.push(`- **${h.name}**: \`${value}\``);
       });
     }
@@ -249,7 +249,7 @@ async function handleGetEmailHeaders(args) {
       }
 
       // Build formatted output
-      let output = [];
+      const output = [];
       output.push(`# Email Headers\n`);
       output.push(`**Subject**: ${email.subject || '(no subject)'}`);
       output.push(

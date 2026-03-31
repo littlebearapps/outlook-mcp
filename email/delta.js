@@ -88,7 +88,7 @@ async function handleListEmailsDelta(args) {
 
     // Build response
     const isInitialSync = !deltaToken;
-    const hasMoreChanges = !!nextLink;
+    const hasMoreChanges = Boolean(nextLink);
     const newDeltaToken = deltaLink || nextLink;
 
     // Format output based on verbosity

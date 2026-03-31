@@ -30,7 +30,7 @@ function parseMimeHeaders(mimeContent) {
   lines.forEach((line) => {
     if (line.startsWith(' ') || line.startsWith('\t')) {
       // Continuation of previous header
-      currentValue += ' ' + line.trim();
+      currentValue += ` ${line.trim()}`;
     } else {
       // Save previous header
       if (currentHeader) {
@@ -57,6 +57,12 @@ function parseMimeHeaders(mimeContent) {
   };
 }
 
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 /**
  * Get MIME content size info
  * @param {string} mimeContent - Raw MIME content
@@ -68,12 +74,7 @@ function getMimeStats(mimeContent) {
 
   return {
     bytes,
-    formattedSize:
-      bytes < 1024
-        ? `${bytes} B`
-        : bytes < 1024 * 1024
-          ? `${(bytes / 1024).toFixed(1)} KB`
-          : `${(bytes / (1024 * 1024)).toFixed(2)} MB`,
+    formattedSize: formatBytes(bytes),
     lines,
   };
 }
@@ -184,17 +185,17 @@ async function handleGetMimeContent(args) {
       }
 
       // Build response
-      let output = [];
+      const output = [];
       output.push(`# MIME Content${headersOnly ? ' (Headers Only)' : ''}\n`);
       output.push(`**Size**: ${stats.formattedSize}`);
       output.push(`**Lines**: ${stats.lines}`);
 
       // Show key headers
-      if (parsed.headers['Subject']) {
-        output.push(`**Subject**: ${parsed.headers['Subject']}`);
+      if (parsed.headers.Subject) {
+        output.push(`**Subject**: ${parsed.headers.Subject}`);
       }
-      if (parsed.headers['From']) {
-        output.push(`**From**: ${parsed.headers['From']}`);
+      if (parsed.headers.From) {
+        output.push(`**From**: ${parsed.headers.From}`);
       }
       if (parsed.headers['Content-Type']) {
         output.push(

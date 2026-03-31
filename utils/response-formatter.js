@@ -187,7 +187,7 @@ function formatEmailListAsTable(emails, folder, meta = {}) {
     const date = formatDateShort(email.receivedDateTime);
     const status = email.isRead ? '📖' : '📬';
     const subject = truncateText(email.subject || '(no subject)', 40);
-    const shortId = email.id.substring(0, 20) + '...';
+    const shortId = `${email.id.substring(0, 20)}...`;
 
     output += `| ${i + 1} | ${status} | ${date} | ${truncateText(from, 20)} | ${subject} | \`${shortId}\` |\n`;
   });
@@ -237,10 +237,12 @@ function formatEmailContent(
 
   if (verbosity === VERBOSITY.FULL) {
     output += `\n**ID:** \`${email.id}\``;
-    if (email.conversationId)
+    if (email.conversationId) {
       output += `\n**Conversation ID:** \`${email.conversationId}\``;
-    if (email.internetMessageId)
+    }
+    if (email.internetMessageId) {
       output += `\n**Message-ID:** \`${email.internetMessageId}\``;
+    }
   }
 
   output += '\n\n---\n\n';
@@ -457,7 +459,7 @@ function formatRecipients(recipients) {
 function truncateText(text, maxLength) {
   if (!text) return '';
   if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength - 3) + '...';
+  return `${text.substring(0, maxLength - 3)}...`;
 }
 
 /**
@@ -490,10 +492,10 @@ function escapeCSV(value) {
   const isFormula = formulaChars.some((ch) => str.startsWith(ch));
 
   if (isFormula) {
-    return '"' + "'" + str.replace(/"/g, '""') + '"';
+    return `"` + `'${str.replace(/"/g, '""')}"`;
   }
   if (needsQuoting) {
-    return '"' + str.replace(/"/g, '""') + '"';
+    return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
 }

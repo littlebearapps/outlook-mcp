@@ -166,7 +166,7 @@ async function progressiveSearch(
   ) {
     // Skip directly to boolean-only filter (step 3) — combined search is redundant
     console.error('Only boolean filters provided, skipping combined search');
-  } else
+  } else {
     try {
       const params = buildSearchParams(
         searchTerms,
@@ -193,6 +193,7 @@ async function progressiveSearch(
     } catch (error) {
       console.error(`Combined search failed: ${error.message}`);
     }
+  }
 
   // 2. Try each search term individually, starting with most specific
   const searchPriority = ['from', 'to', 'subject', 'query'];
@@ -545,7 +546,7 @@ function formatSearchResults(response, folder, verbosity) {
   const meta = {
     returned: response.value.length,
     totalAvailable: response['@odata.count'] || null,
-    hasMore: !!response['@odata.nextLink'],
+    hasMore: Boolean(response['@odata.nextLink']),
     verbosity: verbosity,
   };
 

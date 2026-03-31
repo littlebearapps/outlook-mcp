@@ -138,7 +138,7 @@ async function handleSendEmail(args) {
           content: [
             {
               type: 'text',
-              text: tipsText + '\n\n---\n\n' + preview.content[0].text,
+              text: `${tipsText}\n\n---\n\n${preview.content[0].text}`,
             },
           ],
           _meta: { mailTips: tipsResult._meta },

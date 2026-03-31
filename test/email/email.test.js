@@ -563,8 +563,7 @@ describe('handleGetMimeContent', () => {
   });
 
   it('should handle content exceeding size limit', async () => {
-    const largeMime =
-      'Subject: Big\r\nContent-Type: text/plain\r\n\r\n' + 'x'.repeat(2000000);
+    const largeMime = `Subject: Big\r\nContent-Type: text/plain\r\n\r\n${'x'.repeat(2000000)}`;
     callGraphAPIRaw.mockResolvedValue(largeMime);
 
     const result = await handleGetMimeContent({

@@ -68,9 +68,13 @@ tool: manage-rules
 params:
   action: "create"
   name: "Invoices to Finance"
-  subjectContains: "invoice"
+  containsSubject: "invoice, receipt, payment, statement"
+  hasAttachments: true
   moveToFolder: "Finance"
+  exceptFromAddresses: "accountant@example.com"
 ```
+
+Rules support OR logic for keywords (comma-separated), exceptions to skip specific senders, and `dryRun: true` to preview before creating. See [Create Inbox Rules](create-inbox-rules.md) for the full parameter reference.
 
 Rules run server-side — they work even when Outlook is not open. Use `sequence` to control which rules run first (lower number = higher priority).
 

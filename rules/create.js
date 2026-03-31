@@ -3,8 +3,16 @@
  */
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
-const { getFolderIdByName } = require('../email/folder-utils');
+const { checkRateLimit } = require('../utils/safety');
+const { formatRuleDryRunPreview } = require('../utils/safety');
 const { getInboxRules } = require('./list');
+const {
+  buildConditions,
+  buildActions,
+  buildExceptions,
+  hasAnyCondition,
+  hasAnyAction,
+} = require('./rule-builder');
 
 /**
  * Create rule handler
@@ -12,18 +20,13 @@ const { getInboxRules } = require('./list');
  * @returns {object} - MCP response
  */
 async function handleCreateRule(args) {
-  const {
-    name,
-    fromAddresses,
-    containsSubject,
-    hasAttachments,
-    moveToFolder,
-    markAsRead,
-    isEnabled = true,
-    sequence,
-  } = args;
+  const { name, isEnabled = true, sequence, dryRun } = args;
 
-  // Add validation for sequence parameter
+  // Rate limit rule creation
+  const rateLimitError = checkRateLimit('manage-rules');
+  if (rateLimitError) return rateLimitError;
+
+  // Validate sequence parameter
   if (sequence !== undefined && (isNaN(sequence) || sequence < 1)) {
     return {
       content: [
@@ -46,62 +49,125 @@ async function handleCreateRule(args) {
     };
   }
 
-  // Validate that at least one condition or action is specified
-  const hasCondition =
-    fromAddresses || containsSubject || hasAttachments === true;
-  const hasAction = moveToFolder || markAsRead === true;
-
-  if (!hasCondition) {
+  if (!hasAnyCondition(args)) {
     return {
       content: [
         {
           type: 'text',
-          text: 'At least one condition is required. Specify fromAddresses, containsSubject, or hasAttachments.',
+          text: 'At least one condition is required. Available conditions: fromAddresses, containsSubject, bodyContains, bodyOrSubjectContains, senderContains, recipientContains, sentToAddresses, hasAttachments, importance, sensitivity, sentToMe, sentOnlyToMe, sentCcMe, isAutomaticReply.',
         },
       ],
     };
   }
 
-  if (!hasAction) {
+  if (!hasAnyAction(args)) {
     return {
       content: [
         {
           type: 'text',
-          text: 'At least one action is required. Specify moveToFolder or markAsRead.',
+          text: 'At least one action is required. Available actions: moveToFolder, copyToFolder, markAsRead, markImportance, forwardTo, redirectTo, assignCategories, stopProcessingRules, deleteMessage.',
         },
       ],
     };
   }
 
   try {
-    // Get access token
     const accessToken = await ensureAuthenticated();
 
-    // Create rule
-    const result = await createInboxRule(accessToken, {
-      name,
-      fromAddresses,
-      containsSubject,
-      hasAttachments,
-      moveToFolder,
-      markAsRead,
-      isEnabled,
-      sequence,
-    });
+    // Build rule components
+    const { conditions, warnings: condWarnings } = buildConditions(args);
+    const { actions, warnings: actWarnings } = await buildActions(
+      args,
+      accessToken
+    );
+    const { exceptions, warnings: excWarnings } = buildExceptions(args);
 
-    let responseText = result.message;
+    const allWarnings = [...condWarnings, ...actWarnings, ...excWarnings];
 
-    // Add a tip about sequence if it wasn't provided
-    if (!sequence && !result.error) {
-      responseText +=
-        "\n\nTip: You can specify a 'sequence' parameter when creating rules to control their execution order. Lower sequence numbers run first.";
+    // Check for fatal warnings (folder not found = no valid action)
+    const folderNotFound = actWarnings.some((w) => w.includes('not found'));
+    if (folderNotFound && Object.keys(actions).length === 0) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: actWarnings.filter((w) => w.includes('not found')).join('\n'),
+          },
+        ],
+      };
+    }
+
+    // Determine sequence
+    let ruleSequence = sequence;
+    if (!ruleSequence) {
+      ruleSequence = 100;
+      try {
+        const existingRules = await getInboxRules(accessToken);
+        if (existingRules && existingRules.length > 0) {
+          const highestSequence = Math.max(
+            ...existingRules.map((r) => r.sequence || 0)
+          );
+          ruleSequence = Math.max(highestSequence + 1, 100);
+        }
+      } catch (_sequenceError) {
+        ruleSequence = 100;
+      }
+    }
+    ruleSequence = Math.max(1, Math.floor(ruleSequence));
+
+    // Build the rule object
+    const rule = {
+      displayName: name,
+      isEnabled: isEnabled === true,
+      sequence: ruleSequence,
+      conditions,
+      actions,
+    };
+
+    // Add exceptions if any were specified
+    if (Object.keys(exceptions).length > 0) {
+      rule.exceptions = exceptions;
+    }
+
+    // Dry-run: preview without creating
+    if (dryRun) {
+      const preview = formatRuleDryRunPreview(rule);
+      let text = `DRY RUN — Rule preview (not created):\n\n${preview}`;
+      if (allWarnings.length > 0) {
+        text += `\n\nWarnings:\n${allWarnings.map((w) => `- ${w}`).join('\n')}`;
+      }
+      return {
+        content: [{ type: 'text', text }],
+      };
+    }
+
+    // Create the rule
+    const response = await callGraphAPI(
+      accessToken,
+      'POST',
+      'me/mailFolders/inbox/messageRules',
+      rule
+    );
+
+    if (response && response.id) {
+      let text = `Successfully created rule "${name}" with sequence ${ruleSequence}.`;
+      if (allWarnings.length > 0) {
+        text += `\n\nNotes:\n${allWarnings.map((w) => `- ${w}`).join('\n')}`;
+      }
+      if (!sequence) {
+        text +=
+          "\n\nTip: You can specify a 'sequence' parameter when creating rules to control their execution order. Lower sequence numbers run first.";
+      }
+      return {
+        content: [{ type: 'text', text }],
+      };
     }
 
     return {
       content: [
         {
           type: 'text',
-          text: responseText,
+          text: "Failed to create rule. The server didn't return a rule ID.",
         },
       ],
     };
@@ -111,7 +177,7 @@ async function handleCreateRule(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -125,148 +191,6 @@ async function handleCreateRule(args) {
         },
       ],
     };
-  }
-}
-
-/**
- * Create a new inbox rule
- * @param {string} accessToken - Access token
- * @param {object} ruleOptions - Rule creation options
- * @returns {Promise<object>} - Result object with status and message
- */
-async function createInboxRule(accessToken, ruleOptions) {
-  try {
-    const {
-      name,
-      fromAddresses,
-      containsSubject,
-      hasAttachments,
-      moveToFolder,
-      markAsRead,
-      isEnabled,
-      sequence,
-    } = ruleOptions;
-
-    // Get existing rules to determine sequence if not provided
-    let ruleSequence = sequence;
-    if (!ruleSequence) {
-      try {
-        // Default to 100 if we can't get existing rules
-        ruleSequence = 100;
-
-        // Get existing rules to find highest sequence
-        const existingRules = await getInboxRules(accessToken);
-        if (existingRules && existingRules.length > 0) {
-          // Find the highest sequence
-          const highestSequence = Math.max(
-            ...existingRules.map((r) => r.sequence || 0)
-          );
-          // Set new rule sequence to be higher
-          ruleSequence = Math.max(highestSequence + 1, 100);
-          console.error(
-            `Auto-generated sequence: ${ruleSequence} (based on highest existing: ${highestSequence})`
-          );
-        }
-      } catch (sequenceError) {
-        console.error(
-          `Error determining rule sequence: ${sequenceError.message}`
-        );
-        // Fall back to default value
-        ruleSequence = 100;
-      }
-    }
-
-    console.error(`Using rule sequence: ${ruleSequence}`);
-
-    // Make sure sequence is a positive integer
-    ruleSequence = Math.max(1, Math.floor(ruleSequence));
-
-    // Build rule object with sequence
-    const rule = {
-      displayName: name,
-      isEnabled: isEnabled === true,
-      sequence: ruleSequence,
-      conditions: {},
-      actions: {},
-    };
-
-    // Add conditions
-    if (fromAddresses) {
-      // Parse email addresses
-      const emailAddresses = fromAddresses
-        .split(',')
-        .map((email) => email.trim())
-        .filter((email) => email)
-        .map((email) => ({
-          emailAddress: {
-            address: email,
-          },
-        }));
-
-      if (emailAddresses.length > 0) {
-        rule.conditions.fromAddresses = emailAddresses;
-      }
-    }
-
-    if (containsSubject) {
-      rule.conditions.subjectContains = [containsSubject];
-    }
-
-    if (hasAttachments === true) {
-      rule.conditions.hasAttachment = true;
-    }
-
-    // Add actions
-    if (moveToFolder) {
-      // Get folder ID
-      try {
-        const folderId = await getFolderIdByName(accessToken, moveToFolder);
-        if (!folderId) {
-          return {
-            success: false,
-            message: `Target folder "${moveToFolder}" not found. Please specify a valid folder name.`,
-          };
-        }
-
-        rule.actions.moveToFolder = folderId;
-      } catch (folderError) {
-        console.error(
-          `Error resolving folder "${moveToFolder}": ${folderError.message}`
-        );
-        return {
-          success: false,
-          message: `Error resolving folder "${moveToFolder}": ${folderError.message}`,
-        };
-      }
-    }
-
-    if (markAsRead === true) {
-      rule.actions.markAsRead = true;
-    }
-
-    // Create the rule
-    const response = await callGraphAPI(
-      accessToken,
-      'POST',
-      'me/mailFolders/inbox/messageRules',
-      rule
-    );
-
-    if (response && response.id) {
-      return {
-        success: true,
-        message: `Successfully created rule "${name}" with sequence ${ruleSequence}.`,
-        ruleId: response.id,
-      };
-    } else {
-      return {
-        success: false,
-        message: "Failed to create rule. The server didn't return a rule ID.",
-      };
-    }
-  } catch (error) {
-    console.error(`Error creating rule: ${error.message}`);
-    throw error;
   }
 }
 

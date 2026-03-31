@@ -3,8 +3,10 @@
  */
 const { handleListRules, getInboxRules } = require('./list');
 const handleCreateRule = require('./create');
+const handleUpdateRule = require('./update');
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
+const { checkRateLimit } = require('../utils/safety');
 
 /**
  * Delete rule handler
@@ -13,6 +15,10 @@ const { ensureAuthenticated } = require('../auth');
  */
 async function handleDeleteRule(args) {
   const { ruleName, ruleId } = args;
+
+  // Rate limit
+  const rateLimitError = checkRateLimit('manage-rules');
+  if (rateLimitError) return rateLimitError;
 
   if (!ruleName && !ruleId) {
     return {
@@ -116,13 +122,9 @@ async function handleEditRuleSequence(args) {
   }
 
   try {
-    // Get access token
     const accessToken = await ensureAuthenticated();
-
-    // Get all rules
     const rules = await getInboxRules(accessToken);
 
-    // Find the rule by name
     const rule = rules.find((r) => r.displayName === ruleName);
     if (!rule) {
       return {
@@ -135,14 +137,11 @@ async function handleEditRuleSequence(args) {
       };
     }
 
-    // Update the rule sequence
-    const _updateResult = await callGraphAPI(
+    await callGraphAPI(
       accessToken,
       'PATCH',
       `me/mailFolders/inbox/messageRules/${rule.id}`,
-      {
-        sequence: sequence,
-      }
+      { sequence }
     );
 
     return {
@@ -181,7 +180,7 @@ const rulesTools = [
   {
     name: 'manage-rules',
     description:
-      'Manage inbox rules. action=list (default) lists rules. action=create creates a new rule. action=reorder changes rule execution priority. action=delete removes a rule.',
+      'Manage inbox rules. action=list (default) lists rules. action=create creates a new rule with conditions, actions, and optional exceptions. action=update modifies an existing rule. action=reorder changes rule execution priority. action=delete removes a rule.',
     annotations: {
       title: 'Inbox Rules',
       readOnlyHint: false,
@@ -193,59 +192,190 @@ const rulesTools = [
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'create', 'reorder', 'delete'],
+          enum: ['list', 'create', 'update', 'reorder', 'delete'],
           description: 'Action to perform (default: list)',
         },
-        // list params
+
+        // === List params ===
         includeDetails: {
           type: 'boolean',
           description:
-            'Include detailed rule conditions and actions (action=list)',
+            'Include detailed conditions, actions, and exceptions (action=list)',
         },
-        // create params
+
+        // === Create + Update shared params ===
         name: {
           type: 'string',
-          description: 'Name of the rule to create (action=create, required)',
+          description:
+            'Rule name (action=create required, action=update to rename)',
         },
-        fromAddresses: {
-          type: 'string',
-          description: 'Comma-separated sender email addresses (action=create)',
-        },
-        containsSubject: {
-          type: 'string',
-          description: 'Subject text the email must contain (action=create)',
-        },
-        hasAttachments: {
+        dryRun: {
           type: 'boolean',
-          description: 'Apply to emails with attachments (action=create)',
-        },
-        moveToFolder: {
-          type: 'string',
-          description: 'Folder to move matching emails to (action=create)',
-        },
-        markAsRead: {
-          type: 'boolean',
-          description: 'Mark matching emails as read (action=create)',
+          description:
+            'Preview rule without creating/updating (action=create, action=update)',
         },
         isEnabled: {
           type: 'boolean',
           description:
-            'Enable rule after creation, default: true (action=create)',
+            'Enable/disable rule (action=create default: true, action=update)',
         },
         sequence: {
           type: 'number',
           description:
-            'Execution order, lower numbers run first (action=create default: 100, action=reorder required)',
+            'Execution order, lower = higher priority (action=create default: auto, action=reorder required)',
         },
-        // reorder params
-        ruleName: {
+
+        // --- Conditions (comma-separated strings become OR arrays) ---
+        fromAddresses: {
           type: 'string',
           description:
-            'Name of the rule (action=reorder required, action=delete alternative to ruleId)',
+            'Comma-separated sender emails to match (action=create/update)',
+        },
+        containsSubject: {
+          type: 'string',
+          description:
+            'Comma-separated subject keywords (OR logic). e.g. "invoice, receipt, payment" (action=create/update)',
+        },
+        bodyContains: {
+          type: 'string',
+          description:
+            'Comma-separated body text keywords (OR logic) (action=create/update)',
+        },
+        bodyOrSubjectContains: {
+          type: 'string',
+          description:
+            'Comma-separated keywords matching body OR subject (OR logic) (action=create/update)',
+        },
+        senderContains: {
+          type: 'string',
+          description:
+            'Comma-separated partial sender matches (action=create/update)',
+        },
+        recipientContains: {
+          type: 'string',
+          description:
+            'Comma-separated partial recipient matches (action=create/update)',
+        },
+        sentToAddresses: {
+          type: 'string',
+          description:
+            'Comma-separated recipient emails to match (action=create/update)',
+        },
+        hasAttachments: {
+          type: 'boolean',
+          description: 'Match emails with attachments (action=create/update)',
+        },
+        importance: {
+          type: 'string',
+          enum: ['low', 'normal', 'high'],
+          description:
+            'Match emails with this importance (action=create/update)',
+        },
+        sensitivity: {
+          type: 'string',
+          enum: ['normal', 'personal', 'private', 'confidential'],
+          description:
+            'Match emails with this sensitivity (action=create/update)',
+        },
+        sentToMe: {
+          type: 'boolean',
+          description: 'Match emails sent to me (action=create/update)',
+        },
+        sentOnlyToMe: {
+          type: 'boolean',
+          description:
+            'Match emails where I am the only recipient (action=create/update)',
+        },
+        sentCcMe: {
+          type: 'boolean',
+          description: 'Match emails where I am in CC (action=create/update)',
+        },
+        isAutomaticReply: {
+          type: 'boolean',
+          description: 'Match automatic reply emails (action=create/update)',
+        },
+
+        // --- Actions ---
+        moveToFolder: {
+          type: 'string',
+          description:
+            'Folder name to move matching emails to (action=create/update)',
+        },
+        copyToFolder: {
+          type: 'string',
+          description:
+            'Folder name to copy matching emails to (action=create/update)',
+        },
+        markAsRead: {
+          type: 'boolean',
+          description: 'Mark matching emails as read (action=create/update)',
+        },
+        markImportance: {
+          type: 'string',
+          enum: ['low', 'normal', 'high'],
+          description:
+            'Set importance on matching emails (action=create/update)',
+        },
+        forwardTo: {
+          type: 'string',
+          description:
+            'Comma-separated emails to forward matching messages to (action=create/update)',
+        },
+        redirectTo: {
+          type: 'string',
+          description:
+            'Comma-separated emails to redirect matching messages to (action=create/update)',
+        },
+        assignCategories: {
+          type: 'string',
+          description:
+            'Comma-separated Outlook categories to assign (action=create/update)',
+        },
+        stopProcessingRules: {
+          type: 'boolean',
+          description:
+            'Stop evaluating subsequent rules (action=create/update)',
+        },
+        deleteMessage: {
+          type: 'boolean',
+          description:
+            'Move matching emails to Deleted Items (action=create/update)',
+        },
+
+        // --- Exceptions (rule skipped when these match) ---
+        exceptFromAddresses: {
+          type: 'string',
+          description:
+            'Comma-separated sender emails to exclude (action=create/update)',
+        },
+        exceptSubjectContains: {
+          type: 'string',
+          description:
+            'Comma-separated subject keywords to exclude (action=create/update)',
+        },
+        exceptSenderContains: {
+          type: 'string',
+          description:
+            'Comma-separated partial sender matches to exclude (action=create/update)',
+        },
+        exceptBodyContains: {
+          type: 'string',
+          description:
+            'Comma-separated body keywords to exclude (action=create/update)',
+        },
+        exceptHasAttachments: {
+          type: 'boolean',
+          description: 'Exclude emails with attachments (action=create/update)',
+        },
+
+        // === Update + Reorder + Delete params ===
+        ruleName: {
+          type: 'string',
+          description: 'Name of existing rule (action=update/reorder/delete)',
         },
         ruleId: {
           type: 'string',
-          description: 'ID of the rule to delete (action=delete)',
+          description: 'ID of existing rule (action=update/delete)',
         },
       },
       required: [],
@@ -255,6 +385,8 @@ const rulesTools = [
       switch (action) {
         case 'create':
           return handleCreateRule(args);
+        case 'update':
+          return handleUpdateRule(args);
         case 'reorder':
           return handleEditRuleSequence(args);
         case 'delete':
@@ -271,6 +403,7 @@ module.exports = {
   rulesTools,
   handleListRules,
   handleCreateRule,
+  handleUpdateRule,
   handleEditRuleSequence,
   handleDeleteRule,
 };

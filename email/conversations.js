@@ -175,12 +175,12 @@ async function handleListConversations(args) {
     });
 
     // Convert to array and sort by most recent
-    let conversationList = Array.from(conversations.values())
+    const conversationList = Array.from(conversations.values())
       .sort((a, b) => new Date(b.lastDate) - new Date(a.lastDate))
       .slice(0, count);
 
     // Format output
-    let output = [];
+    const output = [];
     output.push(`# Email Conversations\n`);
     output.push(`**Folder**: ${folder}`);
     output.push(`**Conversations**: ${conversationList.length}`);
@@ -314,7 +314,7 @@ async function handleGetConversation(args) {
     }
 
     // Format output
-    let output = [];
+    const output = [];
     output.push(`# Email Conversation\n`);
     output.push(`**Subject**: ${messages[0].subject || '(no subject)'}`);
     output.push(`**Messages**: ${messages.length}`);
@@ -463,8 +463,8 @@ async function handleExportConversation(args) {
     const date = formatDateForFilename(messages[0].receivedDateTime);
     const filenameBase = `${date}_${subject}_conversation`;
 
-    let exportedFiles = [];
-    let exportStats = { messages: messages.length, attachments: 0, bytes: 0 };
+    const exportedFiles = [];
+    const exportStats = { messages: messages.length, attachments: 0, bytes: 0 };
 
     switch (format) {
       case 'eml': {
@@ -497,8 +497,8 @@ async function handleExportConversation(args) {
         for (const msg of messages) {
           const mimeContent = await callGraphAPIRaw(accessToken, msg.id);
           const from = msg.from?.emailAddress?.address || 'unknown@unknown.com';
-          const date = new Date(msg.receivedDateTime);
-          const mboxDate = date.toUTCString().replace('GMT', '+0000');
+          const msgDate = new Date(msg.receivedDateTime);
+          const mboxDate = msgDate.toUTCString().replace('GMT', '+0000');
 
           // MBOX format: From line + MIME content + blank line
           mboxContent += `From ${from} ${mboxDate}\n`;
@@ -515,7 +515,7 @@ async function handleExportConversation(args) {
       case 'markdown': {
         // Export as threaded Markdown document
         const mdPath = path.join(resolvedDir, `${filenameBase}.md`);
-        let mdContent = [];
+        const mdContent = [];
 
         mdContent.push(
           `# Email Conversation: ${messages[0].subject || '(no subject)'}\n`
@@ -600,7 +600,7 @@ async function handleExportConversation(args) {
       case 'html': {
         // Export as HTML document
         const htmlPath = path.join(resolvedDir, `${filenameBase}.html`);
-        let htmlContent = [];
+        const htmlContent = [];
 
         htmlContent.push('<!DOCTYPE html>');
         htmlContent.push('<html><head>');
@@ -674,14 +674,16 @@ async function handleExportConversation(args) {
     }
 
     // Format result
-    const sizeFormatted =
-      exportStats.bytes < 1024
-        ? `${exportStats.bytes} B`
-        : exportStats.bytes < 1024 * 1024
-          ? `${(exportStats.bytes / 1024).toFixed(1)} KB`
-          : `${(exportStats.bytes / (1024 * 1024)).toFixed(2)} MB`;
+    let sizeFormatted;
+    if (exportStats.bytes < 1024) {
+      sizeFormatted = `${exportStats.bytes} B`;
+    } else if (exportStats.bytes < 1024 * 1024) {
+      sizeFormatted = `${(exportStats.bytes / 1024).toFixed(1)} KB`;
+    } else {
+      sizeFormatted = `${(exportStats.bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
 
-    let output = [];
+    const output = [];
     output.push(`# Conversation Exported\n`);
     output.push(`**Subject**: ${messages[0].subject || '(no subject)'}`);
     output.push(`**Format**: ${format.toUpperCase()}`);

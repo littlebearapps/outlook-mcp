@@ -113,6 +113,39 @@ params:
 
 Common folder names: `inbox`, `sentitems`, `drafts`, `deleteditems`, `archive`, `junkemail`.
 
+You can also search custom folders by display name:
+
+```
+tool: search-emails
+params:
+  folder: "Projects/Client A"
+  subject: "proposal"
+```
+
+### Searching Sent Items
+
+When searching Sent Items, use `to:` to filter by recipient (since you are the sender of all emails in Sent Items):
+
+```
+tool: search-emails
+params:
+  folder: "sentitems"
+  to: "client@example.com"
+```
+
+Other useful filters for Sent Items:
+
+```
+tool: search-emails
+params:
+  folder: "sentitems"
+  subject: "invoice"
+  receivedAfter: "2026-01-01"
+  hasAttachments: true
+```
+
+> **Personal accounts**: Free-text `query` searches use Microsoft's `$search` API, which has limited support on personal Outlook.com accounts. Use structured filters (`to`, `subject`, `receivedAfter`, `hasAttachments`) for the most reliable results in any folder. These use `$filter` which works consistently across both personal and work accounts.
+
 ## Search Across All Folders
 
 > "Search all my folders for the contract document"

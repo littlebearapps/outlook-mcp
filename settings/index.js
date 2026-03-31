@@ -56,13 +56,7 @@ function formatAutomaticReplies(settings) {
 
   const lines = [];
   lines.push(
-    `**Status**: ${
-      settings.status === 'disabled'
-        ? '🔴 Disabled'
-        : settings.status === 'alwaysEnabled'
-          ? '🟢 Always Enabled'
-          : '📅 Scheduled'
-    }`
+    `**Status**: ${{ disabled: '🔴 Disabled', alwaysEnabled: '🟢 Always Enabled' }[settings.status] || '📅 Scheduled'}`
   );
 
   if (settings.status !== 'disabled') {
@@ -113,7 +107,7 @@ async function handleGetMailboxSettings(args) {
 
     const settings = await callGraphAPI(accessToken, 'GET', endpoint);
 
-    let output = [];
+    const output = [];
     output.push('# Mailbox Settings\n');
 
     if (section && section !== 'all') {
@@ -287,7 +281,7 @@ async function handleSetAutomaticReplies(args) {
       'me/mailboxSettings/automaticRepliesSetting'
     );
 
-    let output = [];
+    const output = [];
     output.push('Automatic replies updated!\n');
     output.push(formatAutomaticReplies(updated));
 
@@ -413,17 +407,11 @@ async function handleSetWorkingHours(args) {
     );
 
     // Build update
+    const padTime = (t) =>
+      t.length === 5 ? `${t}:00.0000000` : `${t}.0000000`;
     const workingHours = {
-      startTime: startTime
-        ? startTime.length === 5
-          ? startTime + ':00.0000000'
-          : startTime + '.0000000'
-        : current.startTime,
-      endTime: endTime
-        ? endTime.length === 5
-          ? endTime + ':00.0000000'
-          : endTime + '.0000000'
-        : current.endTime,
+      startTime: startTime ? padTime(startTime) : current.startTime,
+      endTime: endTime ? padTime(endTime) : current.endTime,
       daysOfWeek: daysOfWeek
         ? daysOfWeek.map((d) => d.toLowerCase())
         : current.daysOfWeek,
@@ -442,7 +430,7 @@ async function handleSetWorkingHours(args) {
       'me/mailboxSettings/workingHours'
     );
 
-    let output = [];
+    const output = [];
     output.push('Working hours updated!\n');
     output.push(formatWorkingHours(updated));
 
@@ -491,7 +479,7 @@ async function handleGetAutomaticReplies() {
       'me/mailboxSettings/automaticRepliesSetting'
     );
 
-    let output = [];
+    const output = [];
     output.push('# Automatic Replies\n');
     output.push(formatAutomaticReplies(settings));
 
@@ -533,7 +521,7 @@ async function handleGetWorkingHours() {
       'me/mailboxSettings/workingHours'
     );
 
-    let output = [];
+    const output = [];
     output.push('# Working Hours\n');
     output.push(formatWorkingHours(settings));
 

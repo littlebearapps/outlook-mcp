@@ -112,16 +112,16 @@ function setupOAuthRoutes(
     // Since this is a module, actual session handling is outside its direct scope,
     // but it's crucial for the consuming application to handle state verification.
 
-    const authorizationUrl =
-      `${authConfig.authEndpoint}?` +
-      querystring.stringify({
+    const authorizationUrl = `${authConfig.authEndpoint}?${querystring.stringify(
+      {
         client_id: authConfig.clientId,
         response_type: 'code',
         redirect_uri: authConfig.redirectUri,
         scope: authConfig.scopes.join(' '),
         response_mode: 'query',
         state: state,
-      });
+      }
+    )}`;
     res.redirect(authorizationUrl);
   });
 

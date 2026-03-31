@@ -72,7 +72,7 @@ async function callGraphAPI(
         }
 
         if (queryString) {
-          queryString = '?' + queryString;
+          queryString = `?${queryString}`;
         }
       }
 

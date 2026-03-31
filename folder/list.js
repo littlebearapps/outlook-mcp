@@ -272,7 +272,7 @@ function formatFolderHierarchy(folders, includeItemCounts) {
     // Add children
     const childLines = folder.children
       .map((childId) => formatSubtree(childId, level + 1))
-      .filter((line) => line.length > 0)
+      .filter((childLine) => childLine.length > 0)
       .join('\n');
 
     return childLines.length > 0 ? `${line}\n${childLines}` : line;

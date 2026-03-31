@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-03
+
+### Added
+
+- **Enhanced `manage-rules` conditions** — 12 new condition types with OR logic support:
+  - `containsSubject` now accepts comma-separated keywords with OR logic (e.g. `"invoice, receipt, payment"`)
+  - `bodyContains`, `bodyOrSubjectContains` — match body/subject text (OR logic)
+  - `senderContains`, `recipientContains` — partial sender/recipient matching
+  - `sentToAddresses` — exact recipient email matching
+  - `importance`, `sensitivity` — enum-based filtering
+  - `sentToMe`, `sentOnlyToMe`, `sentCcMe`, `isAutomaticReply` — boolean routing conditions
+- **Enhanced `manage-rules` actions** — 7 new action types:
+  - `copyToFolder` — copy to folder (with name resolution)
+  - `markImportance` — set importance level
+  - `forwardTo`, `redirectTo` — auto-forward/redirect (with recipient allowlist check)
+  - `assignCategories` — assign Outlook categories
+  - `stopProcessingRules` — stop evaluating subsequent rules
+  - `deleteMessage` — move to Deleted Items (no permanentDelete for safety)
+- **Rule exceptions** — `except*` parameters to exclude specific senders, subjects, or conditions from a rule
+- **`action=update`** on `manage-rules` — modify existing rules by name or ID (rename, enable/disable, change conditions/actions/exceptions)
+- **`dryRun` parameter** on `manage-rules` create and update — preview rule without committing
+- **`formatRuleDryRunPreview()`** in `utils/safety.js` — human-readable rule preview for dry-run operations
+- **Rate limiting** on rule create, update, and delete operations via `OUTLOOK_MAX_MANAGE_RULES_PER_SESSION`
+
+### Changed
+
+- **Rules module**: refactored into `rule-builder.js` (shared builders), `create.js`, `update.js`, `list.js`
+- **`manage-rules` actions**: `list|create|reorder|delete` → `list|create|update|reorder|delete`
+- **List formatting**: detailed view now shows all condition types, action types, and exceptions
+
 ## [3.6.0] - 2026-03
 
 ### Added

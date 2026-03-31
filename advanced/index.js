@@ -96,7 +96,7 @@ async function handleAccessSharedMailbox(args) {
       };
     }
 
-    let output = [];
+    const output = [];
     output.push(`# Shared Mailbox: ${sharedMailbox}`);
     output.push(`**Folder**: ${mailFolder} | **Count**: ${messages.length}\n`);
 
@@ -241,7 +241,7 @@ async function handleSetMessageFlag(args) {
           timeZone: DEFAULT_TIMEZONE,
         };
       } else {
-        const startOfDay = dueDt.split('T')[0] + 'T09:00:00';
+        const startOfDay = `${dueDt.split('T')[0]}T09:00:00`;
         flag.startDateTime = {
           dateTime: startOfDay,
           timeZone: DEFAULT_TIMEZONE,
@@ -269,7 +269,7 @@ async function handleSetMessageFlag(args) {
       }
     }
 
-    let output = [];
+    const output = [];
 
     if (results.length > 0) {
       output.push(`Flagged ${results.length} message(s) for follow-up`);
@@ -377,7 +377,7 @@ async function handleClearMessageFlag(args) {
     }
 
     const action = markComplete ? 'marked complete' : 'cleared';
-    let output = [];
+    const output = [];
 
     if (results.length > 0) {
       output.push(`${results.length} message(s) ${action}`);
@@ -504,7 +504,7 @@ async function handleFindMeetingRooms(args) {
       };
     }
 
-    let output = [];
+    const output = [];
     output.push(`# Meeting Rooms (${rooms.length})\n`);
 
     if (verbosity === 'minimal') {

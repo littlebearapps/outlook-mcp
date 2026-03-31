@@ -18,7 +18,7 @@ async function handleListEvents(args) {
     const accessToken = await ensureAuthenticated();
 
     // Build API endpoint
-    let endpoint = 'me/events';
+    const endpoint = 'me/events';
 
     // Add query parameters
     const queryParams = {
@@ -54,10 +54,10 @@ async function handleListEvents(args) {
       .map((event, index) => {
         const startDt = event.start.dateTime.endsWith('Z')
           ? event.start.dateTime
-          : event.start.dateTime + 'Z';
+          : `${event.start.dateTime}Z`;
         const endDt = event.end.dateTime.endsWith('Z')
           ? event.end.dateTime
-          : event.end.dateTime + 'Z';
+          : `${event.end.dateTime}Z`;
         const startDate = new Date(startDt).toLocaleString('en-AU', {
           timeZone: tz,
           dateStyle: 'medium',

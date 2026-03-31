@@ -88,8 +88,8 @@ function getAccessToken() {
  */
 function createTestTokens() {
   const testTokens = {
-    access_token: 'test_access_token_' + Date.now(),
-    refresh_token: 'test_refresh_token_' + Date.now(),
+    access_token: `test_access_token_${Date.now()}`,
+    refresh_token: `test_refresh_token_${Date.now()}`,
     expires_at: Date.now() + 3600 * 1000, // 1 hour
   };
 

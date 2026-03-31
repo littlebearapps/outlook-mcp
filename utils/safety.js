@@ -116,8 +116,121 @@ function formatDryRunPreview(emailObject) {
   };
 }
 
+/**
+ * Format a dry-run preview for a mail rule (create or update).
+ * @param {object} rule - The composed Graph API rule object
+ * @returns {string} - Human-readable rule preview text
+ */
+function formatRuleDryRunPreview(rule) {
+  const lines = [];
+
+  lines.push(`Name: ${rule.displayName}`);
+  lines.push(`Enabled: ${rule.isEnabled !== false}`);
+  if (rule.sequence) lines.push(`Sequence: ${rule.sequence}`);
+
+  // Conditions
+  const cond = rule.conditions || {};
+  const condParts = [];
+  if (cond.fromAddresses?.length > 0) {
+    condParts.push(
+      `From: ${cond.fromAddresses.map((a) => a.emailAddress?.address).join(', ')}`
+    );
+  }
+  if (cond.subjectContains?.length > 0) {
+    condParts.push(
+      `Subject contains (any): "${cond.subjectContains.join('", "')}"`
+    );
+  }
+  if (cond.bodyContains?.length > 0) {
+    condParts.push(`Body contains (any): "${cond.bodyContains.join('", "')}"`);
+  }
+  if (cond.bodyOrSubjectContains?.length > 0) {
+    condParts.push(
+      `Body or subject contains (any): "${cond.bodyOrSubjectContains.join('", "')}"`
+    );
+  }
+  if (cond.senderContains?.length > 0) {
+    condParts.push(
+      `Sender contains (any): "${cond.senderContains.join('", "')}"`
+    );
+  }
+  if (cond.recipientContains?.length > 0) {
+    condParts.push(
+      `Recipient contains (any): "${cond.recipientContains.join('", "')}"`
+    );
+  }
+  if (cond.sentToAddresses?.length > 0) {
+    condParts.push(
+      `Sent to: ${cond.sentToAddresses.map((a) => a.emailAddress?.address).join(', ')}`
+    );
+  }
+  if (cond.hasAttachment === true) condParts.push('Has attachment');
+  if (cond.importance) condParts.push(`Importance: ${cond.importance}`);
+  if (cond.sensitivity) condParts.push(`Sensitivity: ${cond.sensitivity}`);
+  if (cond.sentToMe === true) condParts.push('Sent to me');
+  if (cond.sentOnlyToMe === true) condParts.push('Sent only to me');
+  if (cond.sentCcMe === true) condParts.push('I am in CC');
+  if (cond.isAutomaticReply === true) condParts.push('Is automatic reply');
+  if (condParts.length > 0) {
+    lines.push(`Conditions: ${condParts.join('; ')}`);
+  }
+
+  // Actions
+  const act = rule.actions || {};
+  const actParts = [];
+  if (act.moveToFolder) actParts.push(`Move to folder: ${act.moveToFolder}`);
+  if (act.copyToFolder) actParts.push(`Copy to folder: ${act.copyToFolder}`);
+  if (act.markAsRead === true) actParts.push('Mark as read');
+  if (act.markImportance) {
+    actParts.push(`Mark importance: ${act.markImportance}`);
+  }
+  if (act.forwardTo?.length > 0) {
+    actParts.push(
+      `Forward to: ${act.forwardTo.map((r) => r.emailAddress?.address).join(', ')}`
+    );
+  }
+  if (act.redirectTo?.length > 0) {
+    actParts.push(
+      `Redirect to: ${act.redirectTo.map((r) => r.emailAddress?.address).join(', ')}`
+    );
+  }
+  if (act.assignCategories?.length > 0) {
+    actParts.push(`Assign categories: ${act.assignCategories.join(', ')}`);
+  }
+  if (act.stopProcessingRules === true) actParts.push('Stop processing rules');
+  if (act.delete === true) actParts.push('Delete (move to Deleted Items)');
+  if (actParts.length > 0) {
+    lines.push(`Actions: ${actParts.join('; ')}`);
+  }
+
+  // Exceptions
+  const exc = rule.exceptions || {};
+  const excParts = [];
+  if (exc.fromAddresses?.length > 0) {
+    excParts.push(
+      `From: ${exc.fromAddresses.map((a) => a.emailAddress?.address).join(', ')}`
+    );
+  }
+  if (exc.subjectContains?.length > 0) {
+    excParts.push(`Subject contains: "${exc.subjectContains.join('", "')}"`);
+  }
+  if (exc.senderContains?.length > 0) {
+    excParts.push(`Sender contains: "${exc.senderContains.join('", "')}"`);
+  }
+  if (exc.bodyContains?.length > 0) {
+    excParts.push(`Body contains: "${exc.bodyContains.join('", "')}"`);
+  }
+  if (exc.hasAttachment === true) excParts.push('Has attachment');
+  if (excParts.length > 0) {
+    lines.push(`Exceptions (rule skipped when): ${excParts.join('; ')}`);
+  }
+
+  return lines.join('\n');
+}
+
 module.exports = {
   checkRateLimit,
   checkRecipientAllowlist,
   formatDryRunPreview,
+  formatRuleDryRunPreview,
 };

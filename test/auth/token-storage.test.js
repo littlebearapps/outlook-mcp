@@ -242,8 +242,9 @@ describe('TokenStorage', () => {
       const mockRes = {
         statusCode: 200,
         on: (event, cb) => {
-          if (event === 'data')
+          if (event === 'data') {
             cb(Buffer.from(JSON.stringify(mockSuccessfulTokenResponse)));
+          }
           if (event === 'end') cb();
         },
       };
@@ -281,8 +282,9 @@ describe('TokenStorage', () => {
         // Simulate successful API response
         statusCode: 200,
         on: (event, cb) => {
-          if (event === 'data')
+          if (event === 'data') {
             cb(Buffer.from(JSON.stringify(mockSuccessfulTokenResponse)));
+          }
           if (event === 'end') cb();
         },
       };
@@ -373,8 +375,9 @@ describe('TokenStorage', () => {
       const mockRes = {
         statusCode: 200,
         on: (event, cb) => {
-          if (event === 'data')
+          if (event === 'data') {
             cb(Buffer.from(JSON.stringify(mockSuccessfulRefreshResponse)));
+          }
           if (event === 'end') cb();
         },
       };
@@ -405,8 +408,9 @@ describe('TokenStorage', () => {
         // Simulate successful API response
         statusCode: 200,
         on: (event, cb) => {
-          if (event === 'data')
+          if (event === 'data') {
             cb(Buffer.from(JSON.stringify(mockSuccessfulRefreshResponse)));
+          }
           if (event === 'end') cb();
         },
       };
@@ -427,7 +431,7 @@ describe('TokenStorage', () => {
         statusCode: 200,
         on: (event, cb) => {
           // Response without a new refresh_token
-          if (event === 'data')
+          if (event === 'data') {
             cb(
               Buffer.from(
                 JSON.stringify({
@@ -436,6 +440,7 @@ describe('TokenStorage', () => {
                 })
               )
             );
+          }
           if (event === 'end') cb();
         },
       };
@@ -449,7 +454,7 @@ describe('TokenStorage', () => {
       const mockRes = {
         statusCode: 200,
         on: (event, cb) => {
-          if (event === 'data')
+          if (event === 'data') {
             cb(
               Buffer.from(
                 JSON.stringify({
@@ -458,6 +463,7 @@ describe('TokenStorage', () => {
                 })
               )
             );
+          }
           if (event === 'end') cb();
         },
       };
@@ -507,8 +513,9 @@ describe('TokenStorage', () => {
       const mockRes = {
         statusCode: 200,
         on: (event, cb) => {
-          if (event === 'data')
+          if (event === 'data') {
             cb(Buffer.from(JSON.stringify(mockSuccessfulRefreshResponse)));
+          }
           if (event === 'end') cb();
         },
       };

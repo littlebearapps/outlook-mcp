@@ -13,13 +13,8 @@ async function handleListRules(args) {
   const includeDetails = args.includeDetails === true;
 
   try {
-    // Get access token
     const accessToken = await ensureAuthenticated();
-
-    // Get all inbox rules
     const rules = await getInboxRules(accessToken);
-
-    // Format the rules based on detail level
     const formattedRules = formatRulesList(rules, includeDetails);
 
     return {
@@ -36,7 +31,7 @@ async function handleListRules(args) {
         content: [
           {
             type: 'text',
-            text: "Authentication required. Please use the 'authenticate' tool first.",
+            text: "Authentication required. Please use the 'auth' tool with action=authenticate first.",
           },
         ],
       };
@@ -82,45 +77,43 @@ async function getInboxRules(accessToken) {
  */
 function formatRulesList(rules, includeDetails) {
   if (!rules || rules.length === 0) {
-    return "No inbox rules found.\n\nTip: You can create rules using the 'create-rule' tool. Rules are processed in order of their sequence number (lower numbers are processed first).";
+    return 'No inbox rules found.\n\nTip: You can create rules using manage-rules with action=create. Rules are processed in order of their sequence number (lower numbers are processed first).';
   }
 
-  // Sort rules by sequence to show execution order
   const sortedRules = [...rules].sort((a, b) => {
     return (a.sequence || 9999) - (b.sequence || 9999);
   });
 
-  // Format rules based on detail level
   if (includeDetails) {
-    // Detailed format
     const detailedRules = sortedRules.map((rule) => {
-      // Format rule header with sequence
       let ruleText = `[${rule.sequence || 'N/A'}] ${rule.displayName}${rule.isEnabled ? '' : ' (Disabled)'}`;
 
-      // Format conditions
       const conditions = formatRuleConditions(rule);
       if (conditions) {
         ruleText += `\n   Conditions: ${conditions}`;
       }
 
-      // Format actions
       const actions = formatRuleActions(rule);
       if (actions) {
         ruleText += `\n   Actions: ${actions}`;
+      }
+
+      const exceptions = formatRuleExceptions(rule);
+      if (exceptions) {
+        ruleText += `\n   Exceptions: ${exceptions}`;
       }
 
       return ruleText;
     });
 
     return `Found ${rules.length} inbox rules (sorted by execution order):\n\n${detailedRules.join('\n\n')}\n\nRules are processed in order of their sequence number. You can change rule order using manage-rules with action=reorder.`;
-  } else {
-    // Simple format
-    const simpleRules = sortedRules.map((rule) => {
-      return `[${rule.sequence || 'N/A'}] ${rule.displayName}${rule.isEnabled ? '' : ' (Disabled)'}`;
-    });
-
-    return `Found ${rules.length} inbox rules (sorted by execution order):\n\n${simpleRules.join('\n')}\n\nTip: Use 'list-rules with includeDetails=true' to see more information about each rule.`;
   }
+
+  const simpleRules = sortedRules.map((rule) => {
+    return `[${rule.sequence || 'N/A'}] ${rule.displayName}${rule.isEnabled ? '' : ' (Disabled)'}`;
+  });
+
+  return `Found ${rules.length} inbox rules (sorted by execution order):\n\n${simpleRules.join('\n')}\n\nTip: Use manage-rules with includeDetails=true to see conditions, actions, and exceptions for each rule.`;
 }
 
 /**
@@ -130,37 +123,76 @@ function formatRulesList(rules, includeDetails) {
  */
 function formatRuleConditions(rule) {
   const conditions = [];
+  const c = rule.conditions;
+  if (!c) return '';
 
-  // From addresses
-  if (rule.conditions?.fromAddresses?.length > 0) {
-    const senders = rule.conditions.fromAddresses
-      .map((addr) => addr.emailAddress.address)
+  // Recipient-based
+  if (c.fromAddresses?.length > 0) {
+    const senders = c.fromAddresses
+      .map((addr) => addr.emailAddress?.address)
       .join(', ');
     conditions.push(`From: ${senders}`);
   }
+  if (c.sentToAddresses?.length > 0) {
+    const recipients = c.sentToAddresses
+      .map((addr) => addr.emailAddress?.address)
+      .join(', ');
+    conditions.push(`Sent to: ${recipients}`);
+  }
 
-  // Subject contains
-  if (rule.conditions?.subjectContains?.length > 0) {
+  // String collections
+  if (c.subjectContains?.length > 0) {
+    conditions.push(`Subject contains: "${c.subjectContains.join('", "')}"`);
+  }
+  if (c.bodyContains?.length > 0) {
+    conditions.push(`Body contains: "${c.bodyContains.join('", "')}"`);
+  }
+  if (c.bodyOrSubjectContains?.length > 0) {
     conditions.push(
-      `Subject contains: "${rule.conditions.subjectContains.join(', ')}"`
+      `Body/subject contains: "${c.bodyOrSubjectContains.join('", "')}"`
     );
   }
-
-  // Contains body text
-  if (rule.conditions?.bodyContains?.length > 0) {
+  if (c.senderContains?.length > 0) {
+    conditions.push(`Sender contains: "${c.senderContains.join('", "')}"`);
+  }
+  if (c.recipientContains?.length > 0) {
     conditions.push(
-      `Body contains: "${rule.conditions.bodyContains.join(', ')}"`
+      `Recipient contains: "${c.recipientContains.join('", "')}"`
     );
   }
-
-  // Has attachment
-  if (rule.conditions?.hasAttachment === true) {
-    conditions.push('Has attachment');
+  if (c.headerContains?.length > 0) {
+    conditions.push(`Header contains: "${c.headerContains.join('", "')}"`);
   }
 
-  // Importance
-  if (rule.conditions?.importance) {
-    conditions.push(`Importance: ${rule.conditions.importance}`);
+  // Booleans
+  if (c.hasAttachment === true) conditions.push('Has attachment');
+  if (c.sentToMe === true) conditions.push('Sent to me');
+  if (c.sentOnlyToMe === true) conditions.push('Sent only to me');
+  if (c.sentCcMe === true) conditions.push('I am in CC');
+  if (c.sentToOrCcMe === true) conditions.push('Sent to me or CC');
+  if (c.isAutomaticReply === true) conditions.push('Is automatic reply');
+  if (c.isAutomaticForward === true) conditions.push('Is automatic forward');
+  if (c.isMeetingRequest === true) conditions.push('Is meeting request');
+  if (c.isMeetingResponse === true) conditions.push('Is meeting response');
+  if (c.isReadReceipt === true) conditions.push('Is read receipt');
+  if (c.isEncrypted === true) conditions.push('Is encrypted');
+  if (c.notSentToMe === true) conditions.push('Not sent to me');
+
+  // Enums
+  if (c.importance) conditions.push(`Importance: ${c.importance}`);
+  if (c.sensitivity) conditions.push(`Sensitivity: ${c.sensitivity}`);
+  if (c.messageActionFlag) conditions.push(`Flag: ${c.messageActionFlag}`);
+
+  // Categories
+  if (c.categories?.length > 0) {
+    conditions.push(`Categories: ${c.categories.join(', ')}`);
+  }
+
+  // Size range
+  if (c.withinSizeRange) {
+    const min = c.withinSizeRange.minimumSize || 0;
+    const max = c.withinSizeRange.maximumSize || '∞';
+    conditions.push(`Size: ${min}–${max} bytes`);
   }
 
   return conditions.join('; ');
@@ -173,41 +205,91 @@ function formatRuleConditions(rule) {
  */
 function formatRuleActions(rule) {
   const actions = [];
+  const a = rule.actions;
+  if (!a) return '';
 
-  // Move to folder
-  if (rule.actions?.moveToFolder) {
-    actions.push(`Move to folder: ${rule.actions.moveToFolder}`);
-  }
+  if (a.moveToFolder) actions.push(`Move to folder: ${a.moveToFolder}`);
+  if (a.copyToFolder) actions.push(`Copy to folder: ${a.copyToFolder}`);
+  if (a.markAsRead === true) actions.push('Mark as read');
+  if (a.markImportance) actions.push(`Mark importance: ${a.markImportance}`);
 
-  // Copy to folder
-  if (rule.actions?.copyToFolder) {
-    actions.push(`Copy to folder: ${rule.actions.copyToFolder}`);
-  }
-
-  // Mark as read
-  if (rule.actions?.markAsRead === true) {
-    actions.push('Mark as read');
-  }
-
-  // Mark importance
-  if (rule.actions?.markImportance) {
-    actions.push(`Mark importance: ${rule.actions.markImportance}`);
-  }
-
-  // Forward
-  if (rule.actions?.forwardTo?.length > 0) {
-    const recipients = rule.actions.forwardTo
-      .map((r) => r.emailAddress.address)
+  if (a.forwardTo?.length > 0) {
+    const recipients = a.forwardTo
+      .map((r) => r.emailAddress?.address)
       .join(', ');
     actions.push(`Forward to: ${recipients}`);
   }
-
-  // Delete
-  if (rule.actions?.delete === true) {
-    actions.push('Delete');
+  if (a.forwardAsAttachmentTo?.length > 0) {
+    const recipients = a.forwardAsAttachmentTo
+      .map((r) => r.emailAddress?.address)
+      .join(', ');
+    actions.push(`Forward as attachment to: ${recipients}`);
+  }
+  if (a.redirectTo?.length > 0) {
+    const recipients = a.redirectTo
+      .map((r) => r.emailAddress?.address)
+      .join(', ');
+    actions.push(`Redirect to: ${recipients}`);
   }
 
+  if (a.assignCategories?.length > 0) {
+    actions.push(`Assign categories: ${a.assignCategories.join(', ')}`);
+  }
+  if (a.stopProcessingRules === true) actions.push('Stop processing rules');
+  if (a.delete === true) actions.push('Delete (move to Deleted Items)');
+  if (a.permanentDelete === true) actions.push('Permanently delete');
+
   return actions.join('; ');
+}
+
+/**
+ * Format rule exceptions for display
+ * @param {object} rule - Rule object
+ * @returns {string} - Formatted exceptions
+ */
+function formatRuleExceptions(rule) {
+  const parts = [];
+  const e = rule.exceptions;
+  if (!e) return '';
+
+  if (e.fromAddresses?.length > 0) {
+    const senders = e.fromAddresses
+      .map((addr) => addr.emailAddress?.address)
+      .join(', ');
+    parts.push(`From: ${senders}`);
+  }
+  if (e.sentToAddresses?.length > 0) {
+    const recipients = e.sentToAddresses
+      .map((addr) => addr.emailAddress?.address)
+      .join(', ');
+    parts.push(`Sent to: ${recipients}`);
+  }
+  if (e.subjectContains?.length > 0) {
+    parts.push(`Subject contains: "${e.subjectContains.join('", "')}"`);
+  }
+  if (e.bodyContains?.length > 0) {
+    parts.push(`Body contains: "${e.bodyContains.join('", "')}"`);
+  }
+  if (e.bodyOrSubjectContains?.length > 0) {
+    parts.push(
+      `Body/subject contains: "${e.bodyOrSubjectContains.join('", "')}"`
+    );
+  }
+  if (e.senderContains?.length > 0) {
+    parts.push(`Sender contains: "${e.senderContains.join('", "')}"`);
+  }
+  if (e.recipientContains?.length > 0) {
+    parts.push(`Recipient contains: "${e.recipientContains.join('", "')}"`);
+  }
+  if (e.hasAttachment === true) parts.push('Has attachment');
+  if (e.importance) parts.push(`Importance: ${e.importance}`);
+  if (e.sensitivity) parts.push(`Sensitivity: ${e.sensitivity}`);
+  if (e.sentToMe === true) parts.push('Sent to me');
+  if (e.sentOnlyToMe === true) parts.push('Sent only to me');
+  if (e.sentCcMe === true) parts.push('I am in CC');
+  if (e.isAutomaticReply === true) parts.push('Is automatic reply');
+
+  return parts.join('; ');
 }
 
 module.exports = {

@@ -54,7 +54,7 @@ const WELL_KNOWN_FOLDERS = {
 async function resolveFolderPath(accessToken, folderName) {
   // Default to inbox if no folder specified
   if (!folderName) {
-    return WELL_KNOWN_FOLDERS['inbox'];
+    return WELL_KNOWN_FOLDERS.inbox;
   }
 
   // Check if it's a well-known folder (case-insensitive)

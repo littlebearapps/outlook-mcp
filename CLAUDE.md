@@ -1,6 +1,6 @@
 # CLAUDE.md - Outlook Assistant
 
-MCP server for Microsoft Outlook via Graph API (v3.6.0). 22 tools across 9 modules.
+MCP server for Microsoft Outlook via Graph API (v3.7.0). 22 tools across 9 modules.
 
 ## Commands
 
@@ -70,7 +70,11 @@ email/                # 8 tools: search-emails, read-email, send-email, draft, u
 
 calendar/             # 3 tools: list-events, create-event, manage-event
 folder/               # 1 tool: folders (action: list|create|move|stats)
-rules/                # 1 tool: manage-rules (action: list|create|reorder)
+rules/                # 1 tool: manage-rules (action: list|create|update|reorder|delete)
+  ├── rule-builder.js     # Shared condition/action/exception builders
+  ├── create.js           # Rule creation with all Graph API conditions/actions
+  ├── update.js           # Rule modification (rename, conditions, actions, exceptions)
+  └── list.js             # Rule listing with full condition/action/exception display
 contacts/             # 2 tools: manage-contact (full CRUD), search-people
 categories/           # 3 tools: manage-category, apply-category, manage-focused-inbox
 settings/             # 1 tool: mailbox-settings (action: get|set-auto-replies|set-working-hours)
@@ -89,6 +93,7 @@ utils/
 - **get-mail-tips**: pre-send recipient validation (out-of-office, mailbox full, delivery restrictions)
 - **send-email**: `dryRun` param, `checkRecipients` param (mail tips), session rate limiting (`OUTLOOK_MAX_EMAILS_PER_SESSION`), recipient allowlist (`OUTLOOK_ALLOWED_RECIPIENTS`)
 - **draft**: `dryRun` on create, `checkRecipients` (mail tips), recipient allowlist, rate limiting. Send action shares limit with `send-email`.
+- **manage-rules**: `dryRun` on create/update, rate limiting (`OUTLOOK_MAX_MANAGE_RULES_PER_SESSION`), recipient allowlist on forwardTo/redirectTo, no `permanentDelete` (too dangerous for AI). Supports 12 conditions, 9 actions, and exceptions.
 - **manage-event**: marked `destructiveHint: true` (decline/cancel/delete)
 - 7 read-only tools auto-approved by Claude Code; 2 destructive tools prompt for confirmation
 
@@ -206,7 +211,7 @@ Mock data defined in `utils/mock-data.js`.
 | get/set-focused-inbox-overrides | `manage-focused-inbox` | `action` param |
 | get-mailbox-settings, get/set-automatic-replies, get/set-working-hours | `mailbox-settings` | `action` param |
 | list/create-folder, move-emails, get-folder-stats | `folders` | `action` param |
-| list/create-rule, edit-rule-sequence | `manage-rules` | `action` param |
+| list/create/update-rule, edit-rule-sequence, delete-rule | `manage-rules` | `action` param (`list`, `create`, `update`, `reorder`, `delete`) |
 | about, authenticate, check-auth-status | `auth` | `action` param (`status`, `authenticate`, `device-code-complete`, `about`) |
 | *(new)* create-draft, update-draft, send-draft, delete-draft, create-reply-draft, create-forward-draft | `draft` | `action` param |
 

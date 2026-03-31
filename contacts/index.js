@@ -66,10 +66,12 @@ function formatContact(contact, verbosity = 'standard') {
     // Phone numbers
     const phones = [];
     if (contact.mobilePhone) phones.push(`Mobile: ${contact.mobilePhone}`);
-    if (contact.businessPhones?.length > 0)
+    if (contact.businessPhones?.length > 0) {
       phones.push(`Work: ${contact.businessPhones[0]}`);
-    if (contact.homePhones?.length > 0)
+    }
+    if (contact.homePhones?.length > 0) {
       phones.push(`Home: ${contact.homePhones[0]}`);
+    }
     if (phones.length > 0) {
       lines.push(`**Phone**: ${phones.join(' | ')}`);
     }
@@ -86,8 +88,9 @@ function formatContact(contact, verbosity = 'standard') {
   // Full verbosity extras
   if (verbosity === 'full') {
     if (contact.department) lines.push(`**Department**: ${contact.department}`);
-    if (contact.officeLocation)
+    if (contact.officeLocation) {
       lines.push(`**Office**: ${contact.officeLocation}`);
+    }
     if (contact.birthday) lines.push(`**Birthday**: ${contact.birthday}`);
 
     // Addresses
@@ -130,12 +133,7 @@ async function handleListContacts(args) {
   try {
     const accessToken = await ensureAuthenticated();
 
-    const fields =
-      verbosity === 'full'
-        ? CONTACT_FIELDS.full
-        : verbosity === 'minimal'
-          ? CONTACT_FIELDS.minimal
-          : CONTACT_FIELDS.list;
+    const fields = CONTACT_FIELDS[verbosity] || CONTACT_FIELDS.list;
     const endpoint = folder
       ? `me/contactFolders/${folder}/contacts`
       : 'me/contacts';
@@ -155,7 +153,7 @@ async function handleListContacts(args) {
     );
     const contacts = response.value || [];
 
-    let output = [];
+    const output = [];
     output.push(`# Contacts\n`);
     output.push(`**Total**: ${contacts.length}`);
     output.push('');
@@ -202,12 +200,7 @@ async function handleSearchContacts(args) {
   try {
     const accessToken = await ensureAuthenticated();
 
-    const fields =
-      verbosity === 'full'
-        ? CONTACT_FIELDS.full
-        : verbosity === 'minimal'
-          ? CONTACT_FIELDS.minimal
-          : CONTACT_FIELDS.list;
+    const fields = CONTACT_FIELDS[verbosity] || CONTACT_FIELDS.list;
     const endpoint = 'me/contacts';
 
     // Build filter for name — emailAddresses/any() lambda is unreliable on personal accounts
@@ -259,7 +252,7 @@ async function handleSearchContacts(args) {
     }
     const contacts = response.value || [];
 
-    let output = [];
+    const output = [];
     output.push(`# Contact Search Results\n`);
     output.push(`**Query**: "${query}"`);
     output.push(`**Found**: ${contacts.length}`);
@@ -559,7 +552,7 @@ async function handleSearchPeople(args) {
     );
     const people = response.value || [];
 
-    let output = [];
+    const output = [];
     output.push(`# People Search Results\n`);
     output.push(`**Query**: "${query}"`);
     output.push(`**Found**: ${people.length} (sorted by relevance)`);
