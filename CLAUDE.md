@@ -1,6 +1,6 @@
 # CLAUDE.md - Outlook Assistant
 
-MCP server for Microsoft Outlook via Graph API (v3.7.0). 22 tools across 9 modules.
+MCP server for Microsoft Outlook via Graph API (v3.7.2). 22 tools across 9 modules.
 
 ## Commands
 
@@ -48,44 +48,7 @@ ssh -fNL 3333:localhost:3333 lba-1
 
 ## Architecture
 
-```
-index.js              # Main entry - combines all module tools, serves annotations
-config.js             # Centralized config (API endpoint, defaults, timezone)
-outlook-auth-server.js # OAuth server (port 3333)
-
-auth/                 # 1 tool: auth (action: status|authenticate|device-code-complete|about)
-  ├── token-manager.js    # Legacy token cache (deprecated)
-  ├── token-storage.js    # Token storage with auto-refresh
-  ├── device-code.js      # Device code flow (headless/remote auth)
-  └── tools.js            # Tool definitions
-
-email/                # 8 tools: search-emails, read-email, send-email, draft, update-email, attachments, export, get-mail-tips
-  ├── draft.js            # Draft create/update/send/delete/reply/forward
-  ├── mail-tips.js        # Pre-send recipient validation (out-of-office, mailbox full, etc.)
-  ├── folder-utils.js     # Folder name → ID resolution
-  ├── attachments.js      # List, download, view attachments
-  ├── headers.js          # Email header retrieval
-  ├── mime.js             # Raw MIME/EML content
-  └── conversations.js    # Thread listing, retrieval, export
-
-calendar/             # 3 tools: list-events, create-event, manage-event
-folder/               # 1 tool: folders (action: list|create|move|stats)
-rules/                # 1 tool: manage-rules (action: list|create|update|reorder|delete)
-  ├── rule-builder.js     # Shared condition/action/exception builders
-  ├── create.js           # Rule creation with all Graph API conditions/actions
-  ├── update.js           # Rule modification (rename, conditions, actions, exceptions)
-  └── list.js             # Rule listing with full condition/action/exception display
-contacts/             # 2 tools: manage-contact (full CRUD), search-people
-categories/           # 3 tools: manage-category, apply-category, manage-focused-inbox
-settings/             # 1 tool: mailbox-settings (action: get|set-auto-replies|set-working-hours)
-advanced/             # 2 tools: access-shared-mailbox, find-meeting-rooms
-
-utils/
-  ├── graph-api.js        # Graph API client with OData encoding, $batch, immutable IDs
-  ├── safety.js           # Rate limiting, recipient allowlist, dry-run preview
-  ├── field-presets.js    # Field selections for token efficiency
-  └── response-formatter.js # Verbosity levels (minimal/standard/full)
-```
+Module layout, file organisation, and the v1→v3 tool-consolidation map live in [`docs/architecture.md`](docs/architecture.md).
 
 ## Safety Controls
 
@@ -199,34 +162,12 @@ Mock data defined in `utils/mock-data.js`.
 - Batch API: `callGraphAPIBatch()` sends up to 20 requests via `$batch` endpoint
 - Immutable IDs: opt-in via `OUTLOOK_IMMUTABLE_IDS=true` — IDs persist through folder moves
 
-## Tool Consolidation Map
-
-| Old Tools | New Tool | Pattern |
-|-----------|----------|---------|
-| list-emails, search-emails, list-conversations, search-by-message-id, list-emails-delta | `search-emails` | No query = list mode |
-| read-email, get-email-headers | `read-email` | `headersMode` param |
-| mark-as-read, set-message-flag, clear-message-flag | `update-email` | `action` param |
-| list-attachments, download-attachment, get-attachment-content | `attachments` | `action` param |
-| export-email, batch-export-emails, export-conversation, get-mime-content | `export` | `target` param |
-| decline-event, cancel-event, delete-event | `manage-event` | `action` param |
-| list/search/get/create/update/delete-contact | `manage-contact` | `action` param |
-| list/create/update/delete-category | `manage-category` | `action` param |
-| get/set-focused-inbox-overrides | `manage-focused-inbox` | `action` param |
-| get-mailbox-settings, get/set-automatic-replies, get/set-working-hours | `mailbox-settings` | `action` param |
-| list/create-folder, move-emails, get-folder-stats | `folders` | `action` param |
-| list/create/update-rule, edit-rule-sequence, delete-rule | `manage-rules` | `action` param (`list`, `create`, `update`, `reorder`, `delete`) |
-| about, authenticate, check-auth-status | `auth` | `action` param (`status`, `authenticate`, `device-code-complete`, `about`) |
-| *(new)* create-draft, update-draft, send-draft, delete-draft, create-reply-draft, create-forward-draft | `draft` | `action` param |
-
 ## See Also
 
-- `README.md` - Full documentation, Azure setup, tool reference
-- `docs/quickrefs/tools-reference.md` - Tools quick reference
+- [`README.md`](README.md) - Full documentation, Azure setup, tool reference
+- [`docs/architecture.md`](docs/architecture.md) - Module layout, file tree, tool-consolidation map, history
+- [`docs/quickrefs/tools-reference.md`](docs/quickrefs/tools-reference.md) - Tools quick reference
 - `.env.example` - Environment template
-
-## History
-
-- **v3.3.0**: Renamed from `outlook-mcp` / `@littlebearapps/outlook-mcp` to `outlook-assistant` / `@littlebearapps/outlook-assistant`. Old npm package deprecated with redirect. Token files auto-migrate from `.outlook-mcp-tokens.json`.
 
 # currentDate
 Today's date is 2026-02-27.
