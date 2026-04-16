@@ -27,22 +27,8 @@ npx kill-port 3333       # Kill auth server if port blocked
 - Enable "Allow public client flows" in Authentication > Advanced settings
 - Use a **private/incognito browser** for `microsoft.com/devicelogin` (avoids cached session interference)
 
-**Browser flow (alternative, for localhost use):**
-The auth server needs `OUTLOOK_CLIENT_ID` and `OUTLOOK_CLIENT_SECRET` env vars. These are stored in Bitwarden Secrets Manager as `outlook-client-id` and `outlook-client-secret`. Claude Code shells don't inherit direnv, so start the auth server manually:
-
-```bash
-source ~/bin/kc.sh && \
-  export OUTLOOK_CLIENT_ID=$(kc_get outlook-client-id) && \
-  export OUTLOOK_CLIENT_SECRET=$(kc_get outlook-client-secret) && \
-  node outlook-auth-server.js
-```
-
-The MCP server itself gets credentials via `.mcp.json` inline `kc_get` calls — no manual export needed for normal operation.
-
-For remote testing with browser flow (e.g. MacBook → VPS), SSH tunnel port 3333:
-```bash
-ssh -fNL 3333:localhost:3333 lba-1
-```
+**Browser flow (alternative, for localhost only):**
+Start the auth server with `npm run auth-server` — needs `OUTLOOK_CLIENT_ID`/`OUTLOOK_CLIENT_SECRET` as env vars. The MCP server itself reads credentials from `.mcp.json` inline `kc_get` calls. Full walkthrough: [`docs/how-to/getting-started/connect-outlook-to-claude.md`](docs/how-to/getting-started/connect-outlook-to-claude.md).
 
 **Token refresh**: Tokens auto-refresh when expired (via `token-storage.js`). Re-authentication only needed when the refresh token expires (~90 days).
 
@@ -124,23 +110,7 @@ OUTLOOK_AUTH_METHOD=device-code            # Optional: default auth method (devi
 
 ## Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| `AADSTS7000215` (invalid secret) | Use secret **VALUE**, not Secret ID from Azure |
-| `EADDRINUSE :3333` | `npx kill-port 3333` then restart auth server |
-| Module not found | Run `npm install` |
-| Auth URL doesn't work | Start auth server first: `npm run auth-server` |
-| Empty API response | Check auth status with `auth` tool (action=status) |
-| `search-emails` returns no results | On personal accounts, `query` auto-falls back to subject search (v3.5.2). Use `subject`, `from`, `to`, `receivedAfter` filters for best results |
-| `create-event` wrong timezone | Omit the `Z` suffix on times for local timezone. `Z` suffix = UTC, which may be hours off |
-| Auth server "missing client ID" | Ensure `OUTLOOK_CLIENT_ID`/`OUTLOOK_CLIENT_SECRET` are set as env vars for the auth server process |
-| Device code "invalid_client" | Enable "Allow public client flows" in Azure Portal > App registrations > Authentication |
-| Device code sign-in shows "wrongplace" | Normal — sign-in completed. Close the browser, call `device-code-complete` |
-| Device code sign-in redirects to localhost | Use incognito/private browser for `microsoft.com/devicelogin` |
-| `device-code-complete` hangs | Tool is polling (not a permission prompt). Wait 10-15s. If still hanging, sign-in didn't complete — get new code, use incognito browser |
-| `device-code-complete` "no pending flow" | Fixed in v3.7.2 — device code state now persists to disk, surviving MCP server restarts. Update to v3.7.2+ |
-| Token refresh fails after ~60 min (device code) | Fixed in v3.7.2 — earlier versions sent `client_secret` for public client refresh. Update to v3.7.2+ |
-| `search-emails` returns 503 error | Fixed in v3.5.2 — `query` now falls back to `contains(subject)` on personal accounts. For body search, use `kqlQuery` (#98) |
+Common errors (auth, device code, search, timezones) and fixes live in [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 ## Testing
 
@@ -166,6 +136,7 @@ Mock data defined in `utils/mock-data.js`.
 
 - [`README.md`](README.md) - Full documentation, Azure setup, tool reference
 - [`docs/architecture.md`](docs/architecture.md) - Module layout, file tree, tool-consolidation map, history
+- [`docs/troubleshooting.md`](docs/troubleshooting.md) - Common issues and fixes
 - [`docs/quickrefs/tools-reference.md`](docs/quickrefs/tools-reference.md) - Tools quick reference
 - `.env.example` - Environment template
 
